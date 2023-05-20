@@ -26,5 +26,3 @@ const int LONG_OPEDANDS_LEN[] = {3, 3, 3, 3, 3, 4, 4, 4, 4,
     double result = strtod(str, endptr);                                       \
     result;                                                                    \
   })
-
-void check_lexeme(char *str, int n);
