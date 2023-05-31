@@ -41,7 +41,7 @@ void printStack(Stack *stack) {
   }
 
   for (int i = stack->top; i >= 0; i--) {
-    printf("%lf\n", stack->data[i]);
+      printf("%lf\n", stack->data[i]);
   }
 }
 
