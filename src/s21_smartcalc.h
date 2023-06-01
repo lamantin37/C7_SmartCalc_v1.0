@@ -3,20 +3,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+// #include <stdarg.h>
 
 #include "s21_stack.h"
 
-typedef double (*MathFunc)(double);
-MathFunc trig_functions[] = {cos, sin, tan, acos, asin, atan, sqrt, log, log10};
-
 #define NUM_OF_L_OP 17
-const char *LONG_OPERANDS[] = {"cos",  "sin", "tan", "acos", "asin", "atan",
-                               "sqrt", "ln",  "log", "mod",  "+",    "-",
-                               "*",    "/",   "^",   "(",    ")"};
-const int LONG_OPERANDS_PRIORITY[] = {5, 5, 5, 5, 5, 5, 5, 5, 5,
-                                      5, 2, 2, 3, 3, 4, 1, 1};
-const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
-                            9, 10, 11, 12, 13, 14, 15, 16};
+extern double (*trig_functions[])(double);
+extern const char *LONG_OPERANDS[];
+extern const int LONG_OPERANDS_PRIORITY[];
+extern const double alt_names[];
 
 #define CHECK_L_OP(str)                                                        \
   ({                                                                           \
@@ -58,5 +53,6 @@ const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
 
 #define MATH_FUNCTION_RESULT(func, value) (func(value))
 
-void fillStackDijkstra(Stack *stack, const char *expression);
+void fillStackDijkstra(Stack *stack, const char *expression, double value);
 void countValue(Stack *stack);
+double s21_smartcalc(const char *expression, double value);

@@ -1,22 +1,25 @@
 #include "s21_smartcalc.h"
 
-int main() {
-  char buf[255] = "sin(1) + cos(1)";
+double (*trig_functions[])(double) = {cos,  sin,  tan, acos, asin,
+                                      atan, sqrt, log, log10};
+const char *LONG_OPERANDS[] = {"cos",  "sin", "tan", "acos", "asin", "atan",
+                               "sqrt", "ln",  "log", "mod",  "+",    "-",
+                               "*",    "/",   "^",   "(",    ")"};
+const int LONG_OPERANDS_PRIORITY[] = {5, 5, 5, 5, 5, 5, 5, 5, 5,
+                                      5, 2, 2, 3, 3, 4, 1, 1};
+const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
+                            9, 10, 11, 12, 13, 14, 15, 16};
 
+double s21_smartcalc(const char *expression, double value) {
   Stack stack1;
   init(&stack1);
-
-  fillStackDijkstra(&stack1, buf);
-  double result = pop(&stack1);
-  printf("%lf\n", result);
-
-  return 0;
+  fillStackDijkstra(&stack1, expression, value);
+  return pop(&stack1);
 }
 
-void fillStackDijkstra(Stack *stack, const char *expression) {
+void fillStackDijkstra(Stack *stack, const char *expression, double value) {
   Stack tmp;
   init(&tmp);
-
   for (const char *p = expression; *p != '\0'; p++) {
     int ret = -1;
     if ((ret = CHECK_L_OP(p)) != -1) {
@@ -47,7 +50,7 @@ void fillStackDijkstra(Stack *stack, const char *expression) {
       push(stack, num, 1);
       p = --endptr;
     } else if (isalpha(*p)) {
-      printf("Variable found: %c\n", *p);
+      push(stack, value, 1);
     }
   }
 
