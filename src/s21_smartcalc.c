@@ -20,9 +20,16 @@ double s21_smartcalc(const char *expression, double value) {
 void fillStackDijkstra(Stack *stack, const char *expression, double value) {
   Stack tmp;
   init(&tmp);
+  int sign = 0;
+  int minus = 1;
   for (const char *p = expression; *p != '\0'; p++) {
     int ret = -1;
     if ((ret = CHECK_L_OP(p)) != -1) {
+      if (sign == 1 && ret == 11) {
+        minus = -1;
+        sign = 0;
+        continue;
+      }
       p += (strlen(LONG_OPERANDS[ret]) - 1);
       push(&tmp, alt_names[ret], 0);
       if (tmp.data[tmp.top] == 16.0) {
@@ -44,13 +51,21 @@ void fillStackDijkstra(Stack *stack, const char *expression, double value) {
         }
         push(&tmp, alt_names[ret], 0);
       }
+      sign = 1;
     } else if (isdigit(*p)) {
+      sign = 0;
       char *endptr;
       double num = CONVERT_STR_TO_NUM(p, &endptr);
+      num *= minus == -1 ? minus : 1;
+      minus = minus == -1 ? 1 : minus;
       push(stack, num, 1);
       p = --endptr;
     } else if (isalpha(*p)) {
-      push(stack, value, 1);
+      sign = 0;
+      double num = value;
+      num *= minus == -1 ? minus : 1;
+      minus = minus == -1 ? 1 : minus;
+      push(stack, num, 1);
     }
   }
 
