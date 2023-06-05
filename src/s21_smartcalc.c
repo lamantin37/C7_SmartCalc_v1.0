@@ -22,6 +22,7 @@ void fillStackDijkstra(Stack *stack, const char *expression, double value) {
   init(&tmp);
   int sign = 0;
   int minus = 1;
+  sign = *expression == '-' ? 1: 0;
   for (const char *p = expression; *p != '\0'; p++) {
     int ret = -1;
     if ((ret = CHECK_L_OP(p)) != -1) {
