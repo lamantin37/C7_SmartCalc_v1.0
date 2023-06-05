@@ -14,7 +14,6 @@ int isFull(Stack *stack) {
 
 void push(Stack *stack, double value, int is_num) {
   if (isFull(stack)) {
-    printf("Ошибка: переполнение стека\n");
     return;
   }
   stack->top++;
@@ -24,7 +23,6 @@ void push(Stack *stack, double value, int is_num) {
 
 double pop(Stack *stack) {
   if (isEmpty(stack)) {
-    printf("Ошибка: недостаточно элементов в стеке\n");
     return -1;
   }
   double value = stack->data[stack->top];
@@ -36,7 +34,6 @@ double pop(Stack *stack) {
 
 void printStack(Stack *stack) {
   if (isEmpty(stack)) {
-    printf("Стек пуст\n");
     return;
   }
 
