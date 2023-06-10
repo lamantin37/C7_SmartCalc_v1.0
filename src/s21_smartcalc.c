@@ -10,16 +10,24 @@ const int LONG_OPERANDS_PRIORITY[] = {5, 5, 5, 5, 5, 5, 5, 5, 5,
 const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
                             9, 10, 11, 12, 13, 14, 15, 16};
 
-// int main() {
-//   printf("%lf\n", s21_smartcalc("tan(x)", 5));
-//   return 0;
-// }
+int main() {
+  double res = 0.f;
+  printf("%d\n", s21_smartcalc("0.5 * x + 20 + tan(x)", 10, &res));
+  printf("%lf\n", res);
+  return 0;
+}
 
-double s21_smartcalc(const char *expression, double value) {
+int s21_smartcalc(const char *expression, double value, double *res) {
   Stack stack1;
   init(&stack1);
   int ret = fillStackDijkstra(&stack1, expression, value);
-  return (ret == -1 || ret == -2) ? (ret == -1 ? NAN : INFINITY) : pop(&stack1);
+  ret = ret == 0 ? (stack1.top == 0 ? ret: -3): ret;
+
+  if (ret == 0 && stack1.top == 0) {
+    *res = pop(&stack1);
+  }
+
+  return ret;
 }
 
 int fillStackDijkstra(Stack *stack, const char *expression, double value) {
@@ -42,7 +50,10 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value) {
         pop(&tmp);
         while (tmp.data[tmp.top] != 15.0) {
           push(stack, pop(&tmp), 0);
-          double res = countValue(stack);
+          double res = 0.f;
+          if (countValue(stack, &res) == 1) {
+            return -3;
+          }
           if (isnan(res)) {
             return -1;
           } else if (isinf(res)) {
@@ -58,7 +69,10 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value) {
         while ((LONG_OPERANDS_PRIORITY[(int)tmp.data[tmp.top]] >= priority) &&
                !isEmpty(&tmp)) {
           push(stack, pop(&tmp), 0);
-          double res = countValue(stack);
+          double res = 0.f;
+          if (countValue(stack, &res) == 1) {
+            return -3;
+          }
           if (isnan(res)) {
             return -1;
           } else if (isinf(res)) {
@@ -88,25 +102,42 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value) {
   while (!isEmpty(&tmp)) {
     double num = pop(&tmp);
     push(stack, num, 0);
-    double res = countValue(stack);
+    double res = 0.f;
+    if (countValue(stack, &res) == 1) {
+      return -3;
+    }
     if (isnan(res)) {
       return -1;
     } else if (isinf(res)) {
       return -2;
     }
   }
-  return 1;
+  return 0;
 }
 
-double countValue(Stack *stack) {
+int countValue(Stack *stack, double *res) {
   double alt_name_op = pop(stack);
-  double res = 0.f;
-  if (0 <= alt_name_op && alt_name_op <= 8) {
-    res = MATH_FUNCTION_RESULT(trig_functions[(int)alt_name_op], pop(stack));
-    push(stack, res, 1);
+  if (0 <= alt_name_op && alt_name_op <= 8 && stack->top >= 0) {
+    *res = MATH_FUNCTION_RESULT(trig_functions[(int)alt_name_op], pop(stack));
+    push(stack, *res, 1);
+  } else if (alt_name_op > 8 && stack->top >= 1) {
+    *res = countLOWop(LONG_OPERANDS[(int)alt_name_op], pop(stack), pop(stack));
+    push(stack, *res, 1);
   } else {
-    res = countLOWop(LONG_OPERANDS[(int)alt_name_op], pop(stack), pop(stack));
-    push(stack, res, 1);
+    return 1;
   }
-  return res;
+  return 0;
 }
+
+// int s21_validator(const char *expression) {
+
+//   for (char *p = expression; *p != '\0'; p++) {
+
+//     if ((ret = CHECK_L_OP(p)) != -1) {
+//       printf("operator found");
+//     }
+
+//   }
+
+//   return 0;
+// }
