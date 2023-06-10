@@ -1,6 +1,7 @@
 // #include "s21_smartcalc.h"
 
 // gcc graph.c -o graph `pkg-config --cflags --libs gtk+-3.0`
+// gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph -lm `pkg-config --cflags --libs gtk+-3.0`
 
 // double calculate_expression(const char *expression, double value) {
 //     return s21_smartcalc(expression, value);
@@ -14,7 +15,10 @@ GtkWidget *drawing_area;
 gboolean is_calculated = FALSE;
 
 double calculate_expression(const char *expression, double value) {
-  return s21_smartcalc(expression, value);
+  char buf[256] = "\0";
+  strncpy(buf, expression, 256);
+  REPLACE_CHAR(buf, '.', ',');
+  return s21_smartcalc(buf, value);
 }
 
 gboolean draw_graph(GtkWidget *widget, cairo_t *cr, gpointer data) {
@@ -79,13 +83,25 @@ gboolean draw_graph(GtkWidget *widget, cairo_t *cr, gpointer data) {
   cairo_set_source_rgb(cr, 0, 0, 0);
   cairo_set_line_width(cr, 1);
 
-  double step = 0.1;
+  double step = 0.001;
   double x, y;
 
   const char *expression = gtk_entry_get_text(GTK_ENTRY(expression_entry));
-
+  double previous_y = NAN;
+  
   for (x = -100; x <= 100; x += step) {
     y = calculate_expression(expression, x);
+
+    if (isnan(y)) {
+      previous_y = NAN;
+      continue; // Пропускаем отрисовку, если y равно NAN
+    }
+
+    if (!isnan(previous_y) && fabs(y - previous_y) > 600) {
+      cairo_stroke(cr); // Прерываем линию графика
+      cairo_new_path(cr); // Начинаем новый путь
+    }
+
     double x_screen = width / 2 + (x / 200.0) * width;
     double y_screen = height / 2 - y;
 
@@ -94,6 +110,8 @@ gboolean draw_graph(GtkWidget *widget, cairo_t *cr, gpointer data) {
     } else {
       cairo_line_to(cr, x_screen, y_screen);
     }
+
+    previous_y = y;
   }
 
   cairo_stroke(cr);

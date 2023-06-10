@@ -10,19 +10,24 @@ const int LONG_OPERANDS_PRIORITY[] = {5, 5, 5, 5, 5, 5, 5, 5, 5,
 const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
                             9, 10, 11, 12, 13, 14, 15, 16};
 
+// int main() {
+//   printf("%lf\n", s21_smartcalc("tan(x)", 5));
+//   return 0;
+// }
+
 double s21_smartcalc(const char *expression, double value) {
   Stack stack1;
   init(&stack1);
-  fillStackDijkstra(&stack1, expression, value);
-  return pop(&stack1);
+  int ret = fillStackDijkstra(&stack1, expression, value);
+  return (ret == -1 || ret == -2) ? (ret == -1 ? NAN : INFINITY) : pop(&stack1);
 }
 
-void fillStackDijkstra(Stack *stack, const char *expression, double value) {
+int fillStackDijkstra(Stack *stack, const char *expression, double value) {
   Stack tmp;
   init(&tmp);
   int sign = 0;
   int minus = 1;
-  sign = *expression == '-' ? 1: 0;
+  sign = *expression == '-' ? 1 : 0;
   for (const char *p = expression; *p != '\0'; p++) {
     int ret = -1;
     if ((ret = CHECK_L_OP(p)) != -1) {
@@ -37,7 +42,12 @@ void fillStackDijkstra(Stack *stack, const char *expression, double value) {
         pop(&tmp);
         while (tmp.data[tmp.top] != 15.0) {
           push(stack, pop(&tmp), 0);
-          countValue(stack);
+          double res = countValue(stack);
+          if (isnan(res)) {
+            return -1;
+          } else if (isinf(res)) {
+            return -2;
+          }
         }
         pop(&tmp);
       } else if ((LONG_OPERANDS_PRIORITY[(int)tmp.data[tmp.top]] <=
@@ -48,7 +58,12 @@ void fillStackDijkstra(Stack *stack, const char *expression, double value) {
         while ((LONG_OPERANDS_PRIORITY[(int)tmp.data[tmp.top]] >= priority) &&
                !isEmpty(&tmp)) {
           push(stack, pop(&tmp), 0);
-          countValue(stack);
+          double res = countValue(stack);
+          if (isnan(res)) {
+            return -1;
+          } else if (isinf(res)) {
+            return -2;
+          }
         }
         push(&tmp, alt_names[ret], 0);
       }
@@ -73,19 +88,25 @@ void fillStackDijkstra(Stack *stack, const char *expression, double value) {
   while (!isEmpty(&tmp)) {
     double num = pop(&tmp);
     push(stack, num, 0);
-    countValue(stack);
+    double res = countValue(stack);
+    if (isnan(res)) {
+      return -1;
+    } else if (isinf(res)) {
+      return -2;
+    }
   }
+  return 1;
 }
 
-void countValue(Stack *stack) {
+double countValue(Stack *stack) {
   double alt_name_op = pop(stack);
+  double res = 0.f;
   if (0 <= alt_name_op && alt_name_op <= 8) {
-    double res =
-        MATH_FUNCTION_RESULT(trig_functions[(int)alt_name_op], pop(stack));
+    res = MATH_FUNCTION_RESULT(trig_functions[(int)alt_name_op], pop(stack));
     push(stack, res, 1);
   } else {
-    double res =
-        countLOWop(LONG_OPERANDS[(int)alt_name_op], pop(stack), pop(stack));
+    res = countLOWop(LONG_OPERANDS[(int)alt_name_op], pop(stack), pop(stack));
     push(stack, res, 1);
   }
+  return res;
 }

@@ -53,6 +53,17 @@ extern const double alt_names[];
 
 #define MATH_FUNCTION_RESULT(func, value) (func(value))
 
-void fillStackDijkstra(Stack *stack, const char *expression, double value);
-void countValue(Stack *stack);
+#define REPLACE_CHAR(str, find, replace)                                       \
+  do {                                                                         \
+    char *current = str;                                                       \
+    while (*current != '\0') {                                                 \
+      if (*current == find) {                                                  \
+        *current = replace;                                                    \
+      }                                                                        \
+      current++;                                                               \
+    }                                                                          \
+  } while (0)
+
+int fillStackDijkstra(Stack *stack, const char *expression, double value);
+double countValue(Stack *stack);
 double s21_smartcalc(const char *expression, double value);
