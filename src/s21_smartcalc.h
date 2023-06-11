@@ -64,6 +64,6 @@ extern const double alt_names[];
     }                                                                          \
   } while (0)
 
-int fillStackDijkstra(Stack *stack, const char *expression, double value);
+int fillStackDijkstra(Stack *stack, const char *expression, double value, int *number_of_vars);
 int countValue(Stack *stack, double *res);
-int s21_smartcalc(const char *expression, double value, double *res);
+int s21_smartcalc(const char *expression, double value, double *res, int *number_of_vars);

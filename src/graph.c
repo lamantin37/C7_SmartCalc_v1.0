@@ -1,5 +1,6 @@
 // gcc graph.c -o graph `pkg-config --cflags --libs gtk+-3.0`
-// gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph -lm `pkg-config --cflags --libs gtk+-3.0`
+// gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph
+// -lm `pkg-config --cflags --libs gtk+-3.0`
 
 #include "s21_smartcalc.h"
 #include <gtk/gtk.h>
@@ -7,37 +8,79 @@
 GtkWidget *window;
 GtkWidget *expression_label;
 
+gboolean draw_callback(GtkWidget *widget, cairo_t *cr, char *expression) {
+      printf("%s\n", expression);
+  // Устанавливаем цвет заливки поля
+  cairo_set_source_rgb(cr, 1.0, 1.0, 1.0); // Белый цвет
+  cairo_paint(cr);
+
+  // Устанавливаем параметры линии
+  cairo_set_source_rgb(cr, 0.0, 0.0, 0.0); // Черный цвет
+  cairo_set_line_width(cr, 1.0);           // Толщина линии
+
+  int number_of_vars = 0;
+  double step = 0.01;
+  double x_fixed = 0.f;
+  double y_fixed = 0.f;
+  int size_x = 800;
+  int size_y = 600;
+
+  for (double x = -100; x <= 100; x += step) {
+    if (s21_smartcalc(expression, x, &y_fixed, &number_of_vars) == 0) {
+      y_fixed = size_y / 2 - y_fixed;
+      x_fixed = size_x / 2 + (x / 200.0) * size_x;
+      if (x == -100) {
+        cairo_move_to(cr, x_fixed, y_fixed);
+      } else {
+        cairo_line_to(cr, x_fixed, y_fixed);
+      }
+    }
+  }
+  cairo_stroke(cr);
+
+  return FALSE;
+}
+
 void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   GtkWidget *entry1 = GTK_WIDGET(data);
   GtkWidget *entry2 = g_object_get_data(G_OBJECT(widget), "entry2");
 
   const gchar *expression = gtk_entry_get_text(GTK_ENTRY(entry1));
   const gchar *variable = gtk_entry_get_text(GTK_ENTRY(entry2));
+  char buffer[256] = "\0";
+  char buffer_expression[256] = "\0";
+  strncpy(buffer, variable, 256);
+  strncpy(buffer_expression, expression, 256);
+  REPLACE_CHAR(buffer, '.', ',');
+  REPLACE_CHAR(buffer_expression, '.', ',');
+  double number = 0.f;
+  number = atof(buffer);
 
-  if (g_strcmp0(variable, "") == 0) {
-    // Поле ввода пустое, создание нового окна
+  int number_of_vars = 0;
+  double res = 0.f;
+  int ret = s21_smartcalc(buffer_expression, number, &res, &number_of_vars);
+
+  if (g_strcmp0(variable, "") == 0 && ret != -3 && number_of_vars != 0) {
     GtkWidget *new_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(new_window), "Новое окно");
-    gtk_window_set_default_size(GTK_WINDOW(new_window), 200, 200);
+    gtk_window_set_title(GTK_WINDOW(new_window), "График");
+    gtk_window_set_default_size(GTK_WINDOW(new_window), 800, 600);
 
-    // Добавление виджетов в новое окно
-    // ...
-
+    // Создаем область для рисования
+    GtkWidget *drawing_area = gtk_drawing_area_new();
+    gtk_container_add(GTK_CONTAINER(new_window), drawing_area);
+    g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_callback), buffer_expression);
     gtk_widget_show_all(new_window);
-  } else {
-    char buffer[256] = "\0";
-    char buffer_expression[256] = "\0";
-    strncpy(buffer, variable, 256);
-    strncpy(buffer_expression, expression, 256);
-    REPLACE_CHAR(buffer, '.', ',');
-    REPLACE_CHAR(buffer_expression, '.', ',');
-    double number = atof(buffer);
-    if (s21_smartcalc(buffer_expression, number, &number) == 0) {
+  } else if ((g_strcmp0(variable, "") != 0 || number_of_vars == 0) &&
+             ret != -3) {
+    int num_vars = 0;
+    if (s21_smartcalc(buffer_expression, number, &number, &num_vars) == 0) {
       snprintf(buffer, 256, "%0.3lf\n", number);
       gtk_label_set_text(GTK_LABEL(expression_label), buffer);
     } else {
       gtk_label_set_text(GTK_LABEL(expression_label), "ERROR");
     }
+  } else if (ret == -3) {
+    gtk_label_set_text(GTK_LABEL(expression_label), "ERROR");
   }
 }
 

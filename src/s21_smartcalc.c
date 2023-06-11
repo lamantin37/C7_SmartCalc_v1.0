@@ -10,10 +10,10 @@ const int LONG_OPERANDS_PRIORITY[] = {5, 5, 5, 5, 5, 5, 5, 5, 5,
 const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
                             9, 10, 11, 12, 13, 14, 15, 16};
 
-int s21_smartcalc(const char *expression, double value, double *res) {
+int s21_smartcalc(const char *expression, double value, double *res, int *number_of_vars) {
   Stack stack1;
   init(&stack1);
-  int ret = fillStackDijkstra(&stack1, expression, value);
+  int ret = fillStackDijkstra(&stack1, expression, value, number_of_vars);
   ret = ret == 0 ? (stack1.top == 0 ? ret: -3): ret;
 
   if (ret == 0 && stack1.top == 0) {
@@ -23,7 +23,7 @@ int s21_smartcalc(const char *expression, double value, double *res) {
   return ret;
 }
 
-int fillStackDijkstra(Stack *stack, const char *expression, double value) {
+int fillStackDijkstra(Stack *stack, const char *expression, double value, int *number_of_vars) {
   Stack tmp;
   init(&tmp);
   int sign = 0;
@@ -84,6 +84,7 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value) {
       push(stack, num, 1);
       p = --endptr;
     } else if (isalpha(*p)) {
+      (*number_of_vars)++;
       sign = 0;
       double num = value;
       num *= minus == -1 ? minus : 1;
