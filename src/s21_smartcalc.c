@@ -10,13 +10,6 @@ const int LONG_OPERANDS_PRIORITY[] = {5, 5, 5, 5, 5, 5, 5, 5, 5,
 const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
                             9, 10, 11, 12, 13, 14, 15, 16};
 
-int main() {
-  double res = 0.f;
-  printf("%d\n", s21_smartcalc("0.5 * x + 20 + tan(x)", 10, &res));
-  printf("%lf\n", res);
-  return 0;
-}
-
 int s21_smartcalc(const char *expression, double value, double *res) {
   Stack stack1;
   init(&stack1);
@@ -128,16 +121,3 @@ int countValue(Stack *stack, double *res) {
   }
   return 0;
 }
-
-// int s21_validator(const char *expression) {
-
-//   for (char *p = expression; *p != '\0'; p++) {
-
-//     if ((ret = CHECK_L_OP(p)) != -1) {
-//       printf("operator found");
-//     }
-
-//   }
-
-//   return 0;
-// }

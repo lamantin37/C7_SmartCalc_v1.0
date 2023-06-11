@@ -1,179 +1,129 @@
-// #include "s21_smartcalc.h"
-
 // gcc graph.c -o graph `pkg-config --cflags --libs gtk+-3.0`
 // gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph -lm `pkg-config --cflags --libs gtk+-3.0`
 
-// double calculate_expression(const char *expression, double value) {
-//     return s21_smartcalc(expression, value);
-// }
 #include "s21_smartcalc.h"
 #include <gtk/gtk.h>
 
-GtkWidget *expression_entry;
-GtkWidget *result_label;
-GtkWidget *drawing_area;
-gboolean is_calculated = FALSE;
+GtkWidget *window;
+GtkWidget *expression_label;
 
-double calculate_expression(const char *expression, double value) {
-  char buf[256] = "\0";
-  strncpy(buf, expression, 256);
-  REPLACE_CHAR(buf, '.', ',');
-  return s21_smartcalc(buf, value);
-}
+void calculate_button_clicked(GtkWidget *widget, gpointer data) {
+  GtkWidget *entry1 = GTK_WIDGET(data);
+  GtkWidget *entry2 = g_object_get_data(G_OBJECT(widget), "entry2");
 
-gboolean draw_graph(GtkWidget *widget, cairo_t *cr, gpointer data) {
-  if (!is_calculated) {
-    return FALSE;
-  }
+  const gchar *expression = gtk_entry_get_text(GTK_ENTRY(entry1));
+  const gchar *variable = gtk_entry_get_text(GTK_ENTRY(entry2));
 
-  GtkAllocation allocation;
-  gtk_widget_get_allocation(widget, &allocation);
-  gint width = allocation.width;
-  gint height = allocation.height;
+  if (g_strcmp0(variable, "") == 0) {
+    // Поле ввода пустое, создание нового окна
+    GtkWidget *new_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(new_window), "Новое окно");
+    gtk_window_set_default_size(GTK_WINDOW(new_window), 200, 200);
 
-  cairo_set_source_rgb(cr, 1, 1, 1);
-  cairo_paint(cr);
+    // Добавление виджетов в новое окно
+    // ...
 
-  // Настройка параметров сетки
-  double grid_spacing = 20.0;
-  double grid_line_width = 0.5;
-  double grid_line_dash[] = {2.0, 2.0};
-  int grid_line_dash_count = 2;
-
-  cairo_set_source_rgb(cr, 0.8, 0.8, 0.8);
-  cairo_set_line_width(cr, grid_line_width);
-  cairo_set_dash(cr, grid_line_dash, grid_line_dash_count, 0);
-
-  // Рисуем вертикальные линии сетки
-  for (double x = -100; x <= 100; x += grid_spacing) {
-    double x_screen = width / 2 + (x / 200.0) * width;
-    cairo_move_to(cr, x_screen, 0);
-    cairo_line_to(cr, x_screen, height);
-  }
-
-  // Рисуем горизонтальные линии сетки
-  for (double y = -100; y <= 100; y += grid_spacing) {
-    double y_screen = height / 2 - (y / 200.0) * height;
-    cairo_move_to(cr, 0, y_screen);
-    cairo_line_to(cr, width, y_screen);
-  }
-
-  cairo_stroke(cr);
-
-  // Настройка параметров осей координат
-  double axis_line_width = 1.0;
-
-  cairo_set_source_rgb(cr, 0, 0, 0);
-  cairo_set_line_width(cr, axis_line_width);
-  cairo_set_dash(cr, NULL, 0, 0);
-
-  // Рисуем ось x
-  double x_axis_y = height / 2;
-  cairo_move_to(cr, 0, x_axis_y);
-  cairo_line_to(cr, width, x_axis_y);
-
-  // Рисуем ось y
-  double y_axis_x = width / 2;
-  cairo_move_to(cr, y_axis_x, 0);
-  cairo_line_to(cr, y_axis_x, height);
-
-  cairo_stroke(cr);
-
-  // Рисуем график функции
-  cairo_set_source_rgb(cr, 0, 0, 0);
-  cairo_set_line_width(cr, 1);
-
-  double step = 0.001;
-  double x, y;
-
-  const char *expression = gtk_entry_get_text(GTK_ENTRY(expression_entry));
-  double previous_y = NAN;
-  
-  for (x = -100; x <= 100; x += step) {
-    y = calculate_expression(expression, x);
-
-    if (isnan(y)) {
-      previous_y = NAN;
-      continue; // Пропускаем отрисовку, если y равно NAN
-    }
-
-    if (!isnan(previous_y) && fabs(y - previous_y) > 600) {
-      cairo_stroke(cr); // Прерываем линию графика
-      cairo_new_path(cr); // Начинаем новый путь
-    }
-
-    double x_screen = width / 2 + (x / 200.0) * width;
-    double y_screen = height / 2 - y;
-
-    if (x == -100) {
-      cairo_move_to(cr, x_screen, y_screen);
+    gtk_widget_show_all(new_window);
+  } else {
+    char buffer[256] = "\0";
+    char buffer_expression[256] = "\0";
+    strncpy(buffer, variable, 256);
+    strncpy(buffer_expression, expression, 256);
+    REPLACE_CHAR(buffer, '.', ',');
+    REPLACE_CHAR(buffer_expression, '.', ',');
+    double number = atof(buffer);
+    if (s21_smartcalc(buffer_expression, number, &number) == 0) {
+      snprintf(buffer, 256, "%0.3lf\n", number);
+      gtk_label_set_text(GTK_LABEL(expression_label), buffer);
     } else {
-      cairo_line_to(cr, x_screen, y_screen);
+      gtk_label_set_text(GTK_LABEL(expression_label), "ERROR");
     }
-
-    previous_y = y;
   }
-
-  cairo_stroke(cr);
-
-  return FALSE;
 }
 
-void on_calculate_button_clicked(GtkWidget *widget, gpointer data) {
-  is_calculated = TRUE;
+void button1_clicked(GtkWidget *widget, gpointer data) {
+  // Создание нового окна
+  GtkWidget *new_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(new_window), "Калькулятор");
+  gtk_window_set_default_size(GTK_WINDOW(new_window), 400, 200);
 
-  const char *expression = gtk_entry_get_text(GTK_ENTRY(expression_entry));
-  double value = gtk_spin_button_get_value(GTK_SPIN_BUTTON(data));
-  double result = calculate_expression(expression, value);
+  // Создание контейнера
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 10);
+  gtk_container_add(GTK_CONTAINER(new_window), box);
 
-  char result_str[50];
-  snprintf(result_str, sizeof(result_str), "Result: %.2f", result);
-  gtk_label_set_text(GTK_LABEL(result_label), result_str);
+  // Создание полей ввода
+  GtkWidget *entry1 = gtk_entry_new();
+  GtkWidget *entry2 = gtk_entry_new();
 
-  gtk_widget_queue_draw(drawing_area);
+  // Создание подписей для полей ввода
+  GtkWidget *label1 = gtk_label_new("Выражение:");
+  GtkWidget *label2 = gtk_label_new("Значение переменной (опционально):");
+
+  // Создание кнопки "Рассчитать"
+  GtkWidget *calculate_button = gtk_button_new_with_label("Рассчитать");
+
+  // Добавление виджетов в контейнер
+  gtk_box_pack_start(GTK_BOX(box), label1, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), entry1, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), label2, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), entry2, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), calculate_button, FALSE, FALSE, 0);
+
+  expression_label = gtk_label_new(NULL);
+  gtk_box_pack_start(GTK_BOX(box), expression_label, FALSE, FALSE, 0);
+
+  g_object_set_data(G_OBJECT(calculate_button), "entry2", entry2);
+
+  // Подключение функции обратного вызова к кнопке "Рассчитать"
+  g_signal_connect(G_OBJECT(calculate_button), "clicked",
+                   G_CALLBACK(calculate_button_clicked), entry1);
+  // Отображение всех виджетов
+  gtk_widget_show_all(new_window);
 }
 
 int main(int argc, char *argv[]) {
   gtk_init(&argc, &argv);
 
-  GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(window), "Graph");
-  gtk_window_set_default_size(GTK_WINDOW(window), 600, 400);
-  g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-
-  GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-  gtk_container_add(GTK_CONTAINER(window), main_box);
-
-  drawing_area = gtk_drawing_area_new();
-  gtk_box_pack_start(GTK_BOX(main_box), drawing_area, TRUE, TRUE, 0);
-  g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_graph),
+  // Создание основного окна
+  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(window), "Введение в GTK");
+  g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit),
                    NULL);
 
-  GtkWidget *expression_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-  gtk_box_pack_start(GTK_BOX(main_box), expression_box, FALSE, FALSE, 0);
+  // Установка начального размера окна
+  gtk_window_set_default_size(
+      GTK_WINDOW(window), 400,
+      215); // Ширина: 400 пикселей, Высота: 300 пикселей
 
-  GtkWidget *expression_label = gtk_label_new("Expression:");
-  gtk_box_pack_start(GTK_BOX(expression_box), expression_label, FALSE, FALSE,
-                     0);
+  // Создание контейнера
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL,
+                               0); // 10 - отступы между элементами
+  gtk_container_add(GTK_CONTAINER(window), box);
+  gtk_container_set_border_width(GTK_CONTAINER(box), 10);
 
-  expression_entry = gtk_entry_new();
-  gtk_box_pack_start(GTK_BOX(expression_box), expression_entry, TRUE, TRUE, 0);
+  // Создание кнопок
+  GtkWidget *button1 = gtk_button_new_with_label("Калькулятор");
+  GtkWidget *button2 = gtk_button_new_with_label("Кредитный калькулятор");
+  GtkWidget *button3 = gtk_button_new_with_label("Депозитный калькулятор");
 
-  GtkWidget *value_spin = gtk_spin_button_new_with_range(-100.0, 100.0, 0.1);
-  gtk_box_pack_start(GTK_BOX(expression_box), value_spin, FALSE, FALSE, 0);
+  // Увеличение размера кнопок
+  gtk_widget_set_size_request(button1, 400, 100);
+  gtk_widget_set_size_request(button2, 400, 100);
+  gtk_widget_set_size_request(button3, 400, 100);
 
-  GtkWidget *calculate_button = gtk_button_new_with_label("Calculate");
-  g_signal_connect(G_OBJECT(calculate_button), "clicked",
-                   G_CALLBACK(on_calculate_button_clicked), value_spin);
-  gtk_box_pack_start(GTK_BOX(expression_box), calculate_button, FALSE, FALSE,
-                     0);
+  // Добавление кнопок в контейнер
+  gtk_box_pack_start(GTK_BOX(box), button1, FALSE, FALSE,
+                     15); // FALSE - кнопка не растягивается, 0 - отступ
+  gtk_box_pack_start(GTK_BOX(box), button2, FALSE, FALSE, 15);
+  gtk_box_pack_start(GTK_BOX(box), button3, FALSE, FALSE, 15);
 
-  result_label = gtk_label_new("Result: ");
-  gtk_box_pack_start(GTK_BOX(main_box), result_label, FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(button1), "clicked", G_CALLBACK(button1_clicked),
+                   NULL);
 
+  // Отображение всех виджетов
   gtk_widget_show_all(window);
 
   gtk_main();
-
   return 0;
 }
