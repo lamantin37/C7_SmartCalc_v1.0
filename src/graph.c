@@ -23,63 +23,94 @@ GtkWidget *deposit_amount_entry;
 GtkWidget *placement_term_entry;
 GtkWidget *interest_rate_entry;
 GtkWidget *tax_rate_entry;
-GtkWidget *payment_frequency_combo;
-GtkWidget *interest_compound_combo;
 GtkWidget *interest_type_combo;
+GtkWidget *periodicity_entry;
 GtkWidget *deposit_additions_entry;
 GtkWidget *partial_withdrawals_entry;
 
-GtkWidget *payment_frequency_label;
-GtkWidget *interest_compound_label;
-
 void calculate_deposit(GtkWidget *widget, gpointer data) {
+  // Получение значений из полей ввода
   const gchar *deposit_amount_str = gtk_entry_get_text(GTK_ENTRY(deposit_amount_entry));
   const gchar *placement_term_str = gtk_entry_get_text(GTK_ENTRY(placement_term_entry));
   const gchar *interest_rate_str = gtk_entry_get_text(GTK_ENTRY(interest_rate_entry));
   const gchar *tax_rate_str = gtk_entry_get_text(GTK_ENTRY(tax_rate_entry));
-  const gchar *payment_frequency_str = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(payment_frequency_combo));
-  const gchar *interest_compound_str = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(interest_compound_combo));
+  const gchar *interest_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(interest_type_combo));
+  const gchar *periodicity = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(periodicity_entry));
   const gchar *deposit_additions_str = gtk_entry_get_text(GTK_ENTRY(deposit_additions_entry));
   const gchar *partial_withdrawals_str = gtk_entry_get_text(GTK_ENTRY(partial_withdrawals_entry));
 
-  double deposit_amount = atof(deposit_amount_str);
-  double placement_term = atof(placement_term_str);
-  double interest_rate = atof(interest_rate_str);
-  double tax_rate = atof(tax_rate_str);
-  double calculated_amount = deposit_amount;
-  calculated_amount += calculated_amount * (interest_rate / 100);
-  double deposit_additions = atof(deposit_additions_str);
-  calculated_amount += deposit_additions;
-  double partial_withdrawals = atof(partial_withdrawals_str);
-  calculated_amount -= partial_withdrawals;
-  calculated_amount -= calculated_amount * (tax_rate / 100);
+  // Преобразование строк в числа
+  gdouble deposit_amount = g_strtod(deposit_amount_str, NULL);
+  gint placement_term = g_ascii_strtoll(placement_term_str, NULL, 10);
+  gdouble interest_rate = g_strtod(interest_rate_str, NULL);
+  gdouble tax_rate = g_strtod(tax_rate_str, NULL);
+  gdouble deposit_additions = g_strtod(deposit_additions_str, NULL);
+  gdouble partial_withdrawals = g_strtod(partial_withdrawals_str, NULL);
+
+  // Выполнение расчетов
+  gdouble interest_earned = deposit_amount;
+  gdouble tax_amount = 0.0;
+  gdouble total_amount = deposit_amount;
+
+  // Расчет начисленных процентов
+  if (g_strcmp0(interest_type, "Добавлять к вкладу") == 0) {
+    if (g_strcmp0(periodicity, "Ежедневно") == 0) {
+      for (int i = 0; i != placement_term; i++) {
+        interest_earned *= 1 + ((interest_rate - tax_rate) / 36500);
+      }
+    } else if (g_strcmp0(periodicity, "Ежемесячно") == 0) {
+      for (int i = 0; i != placement_term / 30; i++) {
+        interest_earned *= 1 + ((interest_rate - tax_rate) / 1200);
+      }
+    } else if (g_strcmp0(periodicity, "Ежеквартально") == 0) {
+      for (int i = 0; i != placement_term / 120; i++) {
+        interest_earned *= 1 + ((interest_rate - tax_rate) / 400);
+      }
+    }
+  } else if (g_strcmp0(interest_type, "Выплачивать") == 0) {
+    interest_earned = (((interest_rate - tax_rate) / 36500) * total_amount) * placement_term + total_amount;
+  }
+
+  tax_amount = interest_earned * (tax_rate / 100);
 
   GtkWidget *result_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title(GTK_WINDOW(result_window), "Результат расчета");
+  gtk_window_set_title(GTK_WINDOW(result_window), "Результаты расчета");
 
-  gchar *result_text = g_strdup_printf("Сумма вклада с начисленными процентами: %.2f", calculated_amount);
-  GtkWidget *result_label = gtk_label_new(result_text);
+  gtk_window_set_default_size(GTK_WINDOW(result_window), 400, 200);
+  GtkWidget *result_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+  gtk_container_add(GTK_CONTAINER(result_window), result_box);
+
+  GtkWidget *result_label = gtk_label_new(NULL);
+  gchar *result_text = g_strdup_printf("Начисленные проценты: %.2f\nСумма налога: %.2f\nСумма на вкладе к концу срока: %.2f", interest_earned - deposit_amount, tax_amount, interest_earned);
+  gtk_label_set_text(GTK_LABEL(result_label), result_text);
   g_free(result_text);
 
-  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-  gtk_container_add(GTK_CONTAINER(result_window), box);
-  gtk_box_pack_start(GTK_BOX(box), result_label, FALSE, FALSE, 15);
+  gtk_box_pack_start(GTK_BOX(result_box), result_label, FALSE, FALSE, 15);
 
   gtk_widget_show_all(result_window);
+  gtk_window_present(GTK_WINDOW(result_window));
 }
 
 void on_interest_type_changed(GtkWidget *widget, gpointer data) {
-  const gchar *selected_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(widget));
+  GtkWidget *periodicity_combo = GTK_WIDGET(data);
+  const gchar *interest_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(widget));
 
-  if (strcmp(selected_type, "Добавлять к вкладу") == 0) {
-    gtk_widget_show(GTK_WIDGET(payment_frequency_label));
-    gtk_widget_show(GTK_WIDGET(interest_compound_label));
-  } else {
-    gtk_widget_hide(GTK_WIDGET(payment_frequency_label));
-    gtk_widget_hide(GTK_WIDGET(interest_compound_label));
+  // Очистка списка периодичности
+  gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(periodicity_combo));
+
+  // Заполнение списка периодичности в зависимости от выбранного варианта "Начислено процентов"
+  if (g_strcmp0(interest_type, "Добавлять к вкладу") == 0) {
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежедневно");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежемесячно");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежеквартально");
+  } else if (g_strcmp0(interest_type, "Выплачивать") == 0) {
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "В конце срока");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежедневно");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежемесячно");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежеквартально");
   }
 
-  g_free((gchar *) selected_type);
+  g_free((gpointer)interest_type);
 }
 
 void button3_clicked(GtkWidget *widget, gpointer data) {
@@ -98,6 +129,7 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
   GtkWidget *interest_rate_label = gtk_label_new("Процентная ставка:");
   GtkWidget *tax_rate_label = gtk_label_new("Налоговая ставка:");
   GtkWidget *interest_type_label = gtk_label_new("Начислено процентов:");
+  GtkWidget *periodicity_label = gtk_label_new("Периодичность:");
   GtkWidget *deposit_additions_label = gtk_label_new("Сумма пополнений:");
   GtkWidget *partial_withdrawals_label = gtk_label_new("Сумма частичных снятий:");
 
@@ -106,6 +138,7 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
   interest_rate_entry = gtk_entry_new();
   tax_rate_entry = gtk_entry_new();
   interest_type_combo = gtk_combo_box_text_new();
+  periodicity_entry = gtk_combo_box_text_new();
   deposit_additions_entry = gtk_entry_new();
   partial_withdrawals_entry = gtk_entry_new();
 
@@ -114,15 +147,17 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
   gtk_grid_attach(GTK_GRID(grid), interest_rate_label, 0, 2, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), tax_rate_label, 0, 3, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), interest_type_label, 0, 4, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), deposit_additions_label, 0, 5, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), partial_withdrawals_label, 0, 6, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), periodicity_label, 0, 5, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), deposit_additions_label, 0, 6, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), partial_withdrawals_label, 0, 7, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), deposit_amount_entry, 1, 0, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), placement_term_entry, 1, 1, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), interest_rate_entry, 1, 2, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), tax_rate_entry, 1, 3, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), interest_type_combo, 1, 4, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), deposit_additions_entry, 1, 5, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), partial_withdrawals_entry, 1, 6, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), periodicity_entry, 1, 5, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), deposit_additions_entry, 1, 6, 1, 1);
+  gtk_grid_attach(GTK_GRID(grid), partial_withdrawals_entry, 1, 7, 1, 1);
 
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(interest_type_combo), "Добавлять к вкладу");
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(interest_type_combo), "Выплачивать");
@@ -137,6 +172,8 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
   gtk_widget_set_margin_top(GTK_WIDGET(tax_rate_label), 5);
   gtk_widget_set_margin_start(GTK_WIDGET(interest_type_label), 10);
   gtk_widget_set_margin_top(GTK_WIDGET(interest_type_label), 5);
+  gtk_widget_set_margin_start(GTK_WIDGET(periodicity_label), 10);
+  gtk_widget_set_margin_top(GTK_WIDGET(periodicity_label), 5);
   gtk_widget_set_margin_start(GTK_WIDGET(deposit_additions_label), 10);
   gtk_widget_set_margin_top(GTK_WIDGET(deposit_additions_label), 5);
   gtk_widget_set_margin_start(GTK_WIDGET(partial_withdrawals_label), 10);
@@ -151,26 +188,22 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
   gtk_widget_set_margin_top(GTK_WIDGET(tax_rate_entry), 5);
   gtk_widget_set_margin_start(GTK_WIDGET(interest_type_combo), 10);
   gtk_widget_set_margin_top(GTK_WIDGET(interest_type_combo), 5);
+  gtk_widget_set_margin_start(GTK_WIDGET(periodicity_entry), 10);
+  gtk_widget_set_margin_top(GTK_WIDGET(periodicity_entry), 5);
   gtk_widget_set_margin_start(GTK_WIDGET(deposit_additions_entry), 10);
   gtk_widget_set_margin_top(GTK_WIDGET(deposit_additions_entry), 5);
   gtk_widget_set_margin_start(GTK_WIDGET(partial_withdrawals_entry), 10);
   gtk_widget_set_margin_top(GTK_WIDGET(partial_withdrawals_entry), 5);
 
   GtkWidget *calculate_button = gtk_button_new_with_label("Рассчитать");
-  g_signal_connect(G_OBJECT(calculate_button), "clicked", G_CALLBACK(calculate_deposit), NULL);
-  gtk_box_pack_start(GTK_BOX(box), calculate_button, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), calculate_button, FALSE, FALSE, 10);
 
-  interest_compound_label = gtk_label_new("Периодичность капитализации:");
-  payment_frequency_label = gtk_label_new("Периодичность выплат:");
+  g_signal_connect(interest_type_combo, "changed", G_CALLBACK(on_interest_type_changed), periodicity_entry);
 
-  g_signal_connect(G_OBJECT(interest_type_combo), "changed", G_CALLBACK(on_interest_type_changed), NULL);
-
-  gtk_widget_set_margin_start(GTK_WIDGET(interest_compound_label), 10);
-  gtk_widget_set_margin_top(GTK_WIDGET(interest_compound_label), 5);
-  gtk_widget_set_margin_start(GTK_WIDGET(payment_frequency_label), 10);
-  gtk_widget_set_margin_top(GTK_WIDGET(payment_frequency_label), 5);
+  g_signal_connect(calculate_button, "clicked", G_CALLBACK(calculate_deposit), NULL);
 
   gtk_widget_show_all(deposit_window);
+  gtk_window_present(GTK_WINDOW(deposit_window));
 }
 
 gboolean draw_chart(GtkWidget *widget, cairo_t *cr, double *data_pay) {
