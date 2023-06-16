@@ -16,6 +16,14 @@ int s21_smartcalc(const char *expression, double value, double *res, int *number
   int ret = fillStackDijkstra(&stack1, expression, value, number_of_vars);
   ret = ret == 0 ? (stack1.top == 0 ? ret: -3): ret;
 
+  if (ret == -1) {
+    *res = NAN;
+  }
+  
+  if (ret == -2) {
+    *res = INFINITY;
+  }
+
   if (ret == 0 && stack1.top == 0) {
     *res = pop(&stack1);
   }

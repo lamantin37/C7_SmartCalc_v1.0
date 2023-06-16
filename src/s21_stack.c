@@ -41,4 +41,3 @@ void printStack(Stack *stack) {
       printf("%lf\n", stack->data[i]);
   }
 }
-
