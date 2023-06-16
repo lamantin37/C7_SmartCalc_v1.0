@@ -142,7 +142,7 @@ Suite *Create_suite_error_test() {
 }
 
 Suite *Create_suite_hard_test() {
-  Suite *suite = suite_create("bias tests");
+  Suite *suite = suite_create("hard tests");
   TCase *tcase_core = tcase_create("Core");
   tcase_add_test(tcase_core, test4);
   suite_add_tcase(suite, tcase_core);
