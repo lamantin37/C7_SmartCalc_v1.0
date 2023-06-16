@@ -2,8 +2,9 @@
 // gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph
 // -lm `pkg-config --cflags --libs gtk+-3.0`
 
-#include "s21_smartcalc.h"
 #include <gtk/gtk.h>
+
+#include "s21_smartcalc.h"
 
 GtkWidget *window;
 GtkWidget *expression_label;
@@ -30,14 +31,21 @@ GtkWidget *partial_withdrawals_entry;
 
 void calculate_deposit(GtkWidget *widget, gpointer data) {
   // Получение значений из полей ввода
-  const gchar *deposit_amount_str = gtk_entry_get_text(GTK_ENTRY(deposit_amount_entry));
-  const gchar *placement_term_str = gtk_entry_get_text(GTK_ENTRY(placement_term_entry));
-  const gchar *interest_rate_str = gtk_entry_get_text(GTK_ENTRY(interest_rate_entry));
+  const gchar *deposit_amount_str =
+      gtk_entry_get_text(GTK_ENTRY(deposit_amount_entry));
+  const gchar *placement_term_str =
+      gtk_entry_get_text(GTK_ENTRY(placement_term_entry));
+  const gchar *interest_rate_str =
+      gtk_entry_get_text(GTK_ENTRY(interest_rate_entry));
   const gchar *tax_rate_str = gtk_entry_get_text(GTK_ENTRY(tax_rate_entry));
-  const gchar *interest_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(interest_type_combo));
-  const gchar *periodicity = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(periodicity_entry));
-  const gchar *deposit_additions_str = gtk_entry_get_text(GTK_ENTRY(deposit_additions_entry));
-  const gchar *partial_withdrawals_str = gtk_entry_get_text(GTK_ENTRY(partial_withdrawals_entry));
+  const gchar *interest_type = gtk_combo_box_text_get_active_text(
+      GTK_COMBO_BOX_TEXT(interest_type_combo));
+  const gchar *periodicity =
+      gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(periodicity_entry));
+  const gchar *deposit_additions_str =
+      gtk_entry_get_text(GTK_ENTRY(deposit_additions_entry));
+  const gchar *partial_withdrawals_str =
+      gtk_entry_get_text(GTK_ENTRY(partial_withdrawals_entry));
 
   // Преобразование строк в числа
   gdouble deposit_amount = g_strtod(deposit_amount_str, NULL);
@@ -68,7 +76,9 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
       }
     }
   } else if (g_strcmp0(interest_type, "Выплачивать") == 0) {
-    interest_earned = (((interest_rate - tax_rate) / 36500) * total_amount) * placement_term + total_amount;
+    interest_earned =
+        (((interest_rate - tax_rate) / 36500) * total_amount) * placement_term +
+        total_amount;
   }
 
   tax_amount = interest_earned * (tax_rate / 100);
@@ -81,7 +91,10 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
   gtk_container_add(GTK_CONTAINER(result_window), result_box);
 
   GtkWidget *result_label = gtk_label_new(NULL);
-  gchar *result_text = g_strdup_printf("Начисленные проценты: %.2f\nСумма налога: %.2f\nСумма на вкладе к концу срока: %.2f", interest_earned - deposit_amount, tax_amount, interest_earned);
+  gchar *result_text = g_strdup_printf(
+      "Начисленные проценты: %.2f\nСумма налога: %.2f\nСумма на вкладе к концу "
+      "срока: %.2f",
+      interest_earned - deposit_amount, tax_amount, interest_earned);
   gtk_label_set_text(GTK_LABEL(result_label), result_text);
   g_free(result_text);
 
@@ -93,21 +106,30 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
 
 void on_interest_type_changed(GtkWidget *widget, gpointer data) {
   GtkWidget *periodicity_combo = GTK_WIDGET(data);
-  const gchar *interest_type = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(widget));
+  const gchar *interest_type =
+      gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(widget));
 
   // Очистка списка периодичности
   gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(periodicity_combo));
 
-  // Заполнение списка периодичности в зависимости от выбранного варианта "Начислено процентов"
+  // Заполнение списка периодичности в зависимости от выбранного варианта
+  // "Начислено процентов"
   if (g_strcmp0(interest_type, "Добавлять к вкладу") == 0) {
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежедневно");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежемесячно");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежеквартально");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo),
+                                   "Ежедневно");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo),
+                                   "Ежемесячно");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo),
+                                   "Ежеквартально");
   } else if (g_strcmp0(interest_type, "Выплачивать") == 0) {
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "В конце срока");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежедневно");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежемесячно");
-    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo), "Ежеквартально");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo),
+                                   "В конце срока");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo),
+                                   "Ежедневно");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo),
+                                   "Ежемесячно");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo),
+                                   "Ежеквартально");
   }
 
   g_free((gpointer)interest_type);
@@ -131,7 +153,8 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
   GtkWidget *interest_type_label = gtk_label_new("Начислено процентов:");
   GtkWidget *periodicity_label = gtk_label_new("Периодичность:");
   GtkWidget *deposit_additions_label = gtk_label_new("Сумма пополнений:");
-  GtkWidget *partial_withdrawals_label = gtk_label_new("Сумма частичных снятий:");
+  GtkWidget *partial_withdrawals_label =
+      gtk_label_new("Сумма частичных снятий:");
 
   deposit_amount_entry = gtk_entry_new();
   placement_term_entry = gtk_entry_new();
@@ -159,8 +182,10 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
   gtk_grid_attach(GTK_GRID(grid), deposit_additions_entry, 1, 6, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), partial_withdrawals_entry, 1, 7, 1, 1);
 
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(interest_type_combo), "Добавлять к вкладу");
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(interest_type_combo), "Выплачивать");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(interest_type_combo),
+                                 "Добавлять к вкладу");
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(interest_type_combo),
+                                 "Выплачивать");
 
   gtk_widget_set_margin_start(GTK_WIDGET(deposit_amount_label), 10);
   gtk_widget_set_margin_top(GTK_WIDGET(deposit_amount_label), 5);
@@ -198,9 +223,11 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
   GtkWidget *calculate_button = gtk_button_new_with_label("Рассчитать");
   gtk_box_pack_start(GTK_BOX(box), calculate_button, FALSE, FALSE, 10);
 
-  g_signal_connect(interest_type_combo, "changed", G_CALLBACK(on_interest_type_changed), periodicity_entry);
+  g_signal_connect(interest_type_combo, "changed",
+                   G_CALLBACK(on_interest_type_changed), periodicity_entry);
 
-  g_signal_connect(calculate_button, "clicked", G_CALLBACK(calculate_deposit), NULL);
+  g_signal_connect(calculate_button, "clicked", G_CALLBACK(calculate_deposit),
+                   NULL);
 
   gtk_widget_show_all(deposit_window);
   gtk_window_present(GTK_WINDOW(deposit_window));
@@ -222,16 +249,21 @@ gboolean draw_chart(GtkWidget *widget, cairo_t *cr, double *data_pay) {
   double corner_radius = 5.0;
 
   cairo_set_source_rgb(cr, 0.1, 0.2, 0.7);
-  double initial_width = (data_pay[0] - data_pay[1]) / data_pay[0] * (width - 2 * padding);
+  double initial_width =
+      (data_pay[0] - data_pay[1]) / data_pay[0] * (width - 2 * padding);
   cairo_move_to(cr, padding + corner_radius, padding);
   cairo_line_to(cr, padding + initial_width - corner_radius, padding);
-  cairo_arc(cr, padding + initial_width - corner_radius, padding + corner_radius, corner_radius, 1.5 * M_PI, 2 * M_PI);
+  cairo_arc(cr, padding + initial_width - corner_radius,
+            padding + corner_radius, corner_radius, 1.5 * M_PI, 2 * M_PI);
   cairo_line_to(cr, padding + initial_width, height - padding - corner_radius);
-  cairo_arc(cr, padding + initial_width - corner_radius, height - padding - corner_radius, corner_radius, 0, 0.5 * M_PI);
+  cairo_arc(cr, padding + initial_width - corner_radius,
+            height - padding - corner_radius, corner_radius, 0, 0.5 * M_PI);
   cairo_line_to(cr, padding + corner_radius, height - padding);
-  cairo_arc(cr, padding + corner_radius, height - padding - corner_radius, corner_radius, 0.5 * M_PI, M_PI);
+  cairo_arc(cr, padding + corner_radius, height - padding - corner_radius,
+            corner_radius, 0.5 * M_PI, M_PI);
   cairo_line_to(cr, padding, padding + corner_radius);
-  cairo_arc(cr, padding + corner_radius, padding + corner_radius, corner_radius, M_PI, 1.5 * M_PI);
+  cairo_arc(cr, padding + corner_radius, padding + corner_radius, corner_radius,
+            M_PI, 1.5 * M_PI);
   cairo_close_path(cr);
   cairo_fill(cr);
 
@@ -240,13 +272,18 @@ gboolean draw_chart(GtkWidget *widget, cairo_t *cr, double *data_pay) {
   double overpayment_x = padding + initial_width;
   cairo_move_to(cr, overpayment_x + corner_radius, padding);
   cairo_line_to(cr, overpayment_x + overpayment_width - corner_radius, padding);
-  cairo_arc(cr, overpayment_x + overpayment_width - corner_radius, padding + corner_radius, corner_radius, 1.5 * M_PI, 2 * M_PI);
-  cairo_line_to(cr, overpayment_x + overpayment_width, height - padding - corner_radius);
-  cairo_arc(cr, overpayment_x + overpayment_width - corner_radius, height - padding - corner_radius, corner_radius, 0, 0.5 * M_PI);
+  cairo_arc(cr, overpayment_x + overpayment_width - corner_radius,
+            padding + corner_radius, corner_radius, 1.5 * M_PI, 2 * M_PI);
+  cairo_line_to(cr, overpayment_x + overpayment_width,
+                height - padding - corner_radius);
+  cairo_arc(cr, overpayment_x + overpayment_width - corner_radius,
+            height - padding - corner_radius, corner_radius, 0, 0.5 * M_PI);
   cairo_line_to(cr, overpayment_x + corner_radius, height - padding);
-  cairo_arc(cr, overpayment_x + corner_radius, height - padding - corner_radius, corner_radius, 0.5 * M_PI, M_PI);
+  cairo_arc(cr, overpayment_x + corner_radius, height - padding - corner_radius,
+            corner_radius, 0.5 * M_PI, M_PI);
   cairo_line_to(cr, overpayment_x, padding + corner_radius);
-  cairo_arc(cr, overpayment_x + corner_radius, padding + corner_radius, corner_radius, M_PI, 1.5 * M_PI);
+  cairo_arc(cr, overpayment_x + corner_radius, padding + corner_radius,
+            corner_radius, M_PI, 1.5 * M_PI);
   cairo_close_path(cr);
   cairo_fill(cr);
 
@@ -296,8 +333,7 @@ void calculate_credit(GtkWidget *widget, gpointer data) {
 
   gchar *total_text =
       g_strdup_printf("Общая сумма платежей: %.2f", total_payment);
-  gchar *overpay =
-      g_strdup_printf("Переплата по кредиту: %.2f", overpayment);
+  gchar *overpay = g_strdup_printf("Переплата по кредиту: %.2f", overpayment);
   gchar *monthly_text =
       g_strdup_printf("Ежемесячный платеж: %.2f", monthly_payment);
 
@@ -322,8 +358,8 @@ void calculate_credit(GtkWidget *widget, gpointer data) {
   double data_pay[2];
   data_pay[0] = total_payment;
   data_pay[1] = overpayment;
-  g_signal_connect(G_OBJECT(drawing_area), "draw",
-                   G_CALLBACK(draw_chart), g_memdup2(data_pay, 2 * sizeof(double)));
+  g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_chart),
+                   g_memdup2(data_pay, 2 * sizeof(double)));
   gtk_box_pack_start(GTK_BOX(result_box), drawing_area, FALSE, FALSE, 0);
 
   g_free(total_text);

@@ -1,16 +1,10 @@
 #include "s21_stack.h"
 
-void init(Stack *stack) {
-  stack->top = -1;
-}
+void init(Stack *stack) { stack->top = -1; }
 
-int isEmpty(Stack *stack) {
-  return stack->top == -1;
-}
+int isEmpty(Stack *stack) { return stack->top == -1; }
 
-int isFull(Stack *stack) {
-  return stack->top == MAX_SIZE - 1;
-}
+int isFull(Stack *stack) { return stack->top == MAX_SIZE - 1; }
 
 void push(Stack *stack, double value, int is_num) {
   if (isFull(stack)) {
@@ -38,6 +32,6 @@ void printStack(Stack *stack) {
   }
 
   for (int i = stack->top; i >= 0; i--) {
-      printf("%lf\n", stack->data[i]);
+    printf("%lf\n", stack->data[i]);
   }
 }

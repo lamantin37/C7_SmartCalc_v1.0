@@ -1,6 +1,7 @@
-#include "s21_smartcalc.h"
 #include <check.h>
 #include <stdbool.h>
+
+#include "s21_smartcalc.h"
 
 const char *LONG_OPERANDS_TEST[] = {"cos(x)",  "sin(x)",  "tan(x)",
                                     "acos(x)", "asin(x)", "atan(x)",
@@ -8,30 +9,30 @@ const char *LONG_OPERANDS_TEST[] = {"cos(x)",  "sin(x)",  "tan(x)",
 
 const char *LONG_OPERANDS_TEST_BIAS[] = {"+", "-", "*", "/", "^"};
 
-#define trig_func_test(func, str, value)                                       \
-  ({                                                                           \
-    double math_res = func(value);                                             \
-    int num = 0;                                                               \
-    double smartcalc_res = 0.f;                                                \
-    int ret = s21_smartcalc(str, value, &smartcalc_res, &num);                 \
-    if (!isnan(math_res) && !isnan(smartcalc_res) && !isinf(math_res) &&       \
-        !isinf(smartcalc_res)) {                                               \
-      ck_assert_double_eq(math_res, smartcalc_res);                            \
-    }                                                                          \
+#define trig_func_test(func, str, value)                                 \
+  ({                                                                     \
+    double math_res = func(value);                                       \
+    int num = 0;                                                         \
+    double smartcalc_res = 0.f;                                          \
+    int ret = s21_smartcalc(str, value, &smartcalc_res, &num);           \
+    if (!isnan(math_res) && !isnan(smartcalc_res) && !isinf(math_res) && \
+        !isinf(smartcalc_res)) {                                         \
+      ck_assert_double_eq(math_res, smartcalc_res);                      \
+    }                                                                    \
   })
 
-#define bias_op_test(str, value)                                               \
-  ({                                                                           \
-    char buf[256] = "\0";                                                      \
-    sprintf(buf, "%lf %s %lf", value, str, value);                             \
-    int num = 0;                                                               \
-    double smartcalc_res = 0.f;                                                \
-    int ret = s21_smartcalc(buf, 0, &smartcalc_res, &num);                     \
-    double res = countLOWop(str, value, value);                                \
-    if (!isnan(res) && !isnan(smartcalc_res) && !isinf(res) &&                 \
-        !isinf(smartcalc_res)) {                                               \
-      ck_assert_double_eq(res, smartcalc_res);                                 \
-    }                                                                          \
+#define bias_op_test(str, value)                               \
+  ({                                                           \
+    char buf[256] = "\0";                                      \
+    sprintf(buf, "%lf %s %lf", value, str, value);             \
+    int num = 0;                                               \
+    double smartcalc_res = 0.f;                                \
+    int ret = s21_smartcalc(buf, 0, &smartcalc_res, &num);     \
+    double res = countLOWop(str, value, value);                \
+    if (!isnan(res) && !isnan(smartcalc_res) && !isinf(res) && \
+        !isinf(smartcalc_res)) {                               \
+      ck_assert_double_eq(res, smartcalc_res);                 \
+    }                                                          \
   })
 
 START_TEST(test1) {
@@ -88,7 +89,7 @@ START_TEST(test4) {
 
   sprintf(buf, "sin(2) + sqrt((4 ^ 2) + (3 ^ 2))");
   ret = s21_smartcalc(buf, 0, &res, &num);
-  double math_res = sin(2) + sqrt((4*4) + (3*3));
+  double math_res = sin(2) + sqrt((4 * 4) + (3 * 3));
   ck_assert_double_eq(res, math_res);
 
   sprintf(buf, "-5 * (-2 + 7)");
