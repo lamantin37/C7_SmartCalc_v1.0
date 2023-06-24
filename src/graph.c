@@ -1,6 +1,5 @@
 // gcc graph.c -o graph `pkg-config --cflags --libs gtk+-3.0`
-// gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph
-// -lm `pkg-config --cflags --libs gtk+-3.0`
+// gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph -lm `pkg-config --cflags --libs gtk+-3.0`
 
 #include <gtk/gtk.h>
 
@@ -254,16 +253,16 @@ gboolean draw_chart(GtkWidget *widget, cairo_t *cr, double *data_pay) {
   cairo_move_to(cr, padding + corner_radius, padding);
   cairo_line_to(cr, padding + initial_width - corner_radius, padding);
   cairo_arc(cr, padding + initial_width - corner_radius,
-            padding + corner_radius, corner_radius, 1.5 * M_PI, 2 * M_PI);
+            padding + corner_radius, corner_radius, 1.5 * G_PI, 2 * G_PI);
   cairo_line_to(cr, padding + initial_width, height - padding - corner_radius);
   cairo_arc(cr, padding + initial_width - corner_radius,
-            height - padding - corner_radius, corner_radius, 0, 0.5 * M_PI);
+            height - padding - corner_radius, corner_radius, 0, 0.5 * G_PI);
   cairo_line_to(cr, padding + corner_radius, height - padding);
   cairo_arc(cr, padding + corner_radius, height - padding - corner_radius,
-            corner_radius, 0.5 * M_PI, M_PI);
+            corner_radius, 0.5 * G_PI, G_PI);
   cairo_line_to(cr, padding, padding + corner_radius);
   cairo_arc(cr, padding + corner_radius, padding + corner_radius, corner_radius,
-            M_PI, 1.5 * M_PI);
+            G_PI, 1.5 * G_PI);
   cairo_close_path(cr);
   cairo_fill(cr);
 
@@ -273,17 +272,17 @@ gboolean draw_chart(GtkWidget *widget, cairo_t *cr, double *data_pay) {
   cairo_move_to(cr, overpayment_x + corner_radius, padding);
   cairo_line_to(cr, overpayment_x + overpayment_width - corner_radius, padding);
   cairo_arc(cr, overpayment_x + overpayment_width - corner_radius,
-            padding + corner_radius, corner_radius, 1.5 * M_PI, 2 * M_PI);
+            padding + corner_radius, corner_radius, 1.5 * G_PI, 2 * G_PI);
   cairo_line_to(cr, overpayment_x + overpayment_width,
                 height - padding - corner_radius);
   cairo_arc(cr, overpayment_x + overpayment_width - corner_radius,
-            height - padding - corner_radius, corner_radius, 0, 0.5 * M_PI);
+            height - padding - corner_radius, corner_radius, 0, 0.5 * G_PI);
   cairo_line_to(cr, overpayment_x + corner_radius, height - padding);
   cairo_arc(cr, overpayment_x + corner_radius, height - padding - corner_radius,
-            corner_radius, 0.5 * M_PI, M_PI);
+            corner_radius, 0.5 * G_PI, G_PI);
   cairo_line_to(cr, overpayment_x, padding + corner_radius);
   cairo_arc(cr, overpayment_x + corner_radius, padding + corner_radius,
-            corner_radius, M_PI, 1.5 * M_PI);
+            corner_radius, G_PI, 1.5 * G_PI);
   cairo_close_path(cr);
   cairo_fill(cr);
 
@@ -428,6 +427,33 @@ void button2_clicked(GtkWidget *widget, gpointer data) {
 }
 
 gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
+  const gchar *range_x = g_object_get_data(G_OBJECT(widget), "range_x");
+  const gchar *range_y = g_object_get_data(G_OBJECT(widget), "range_y");
+
+  // Обработка параметра range_x
+  double min_x = -1.0;
+  double max_x = 1.0;
+  if (range_x != NULL && strlen(range_x) > 0) {
+    gchar **tokens = g_strsplit(range_x, ":", 2);
+    if (tokens[0] != NULL && tokens[1] != NULL) {
+      min_x = atof(tokens[0]);
+      max_x = atof(tokens[1]);
+    }
+    g_strfreev(tokens);
+  }
+
+  // Обработка параметра range_y
+  double min_y = -1.0;
+  double max_y = 1.0;
+  if (range_y != NULL && strlen(range_y) > 0) {
+    gchar **tokens = g_strsplit(range_y, ":", 2);
+    if (tokens[0] != NULL && tokens[1] != NULL) {
+      min_y = atof(tokens[0]);
+      max_y = atof(tokens[1]);
+    }
+    g_strfreev(tokens);
+  }
+
   cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
   cairo_paint(cr);
 
@@ -450,17 +476,17 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
 
   int number_of_vars = 0;
   double step = 0.01;
-  double x_fixed = 0.f;
-  double y_fixed = 0.f;
-  double max_diff = 100;
+  double x_fixed = 0.0;
+  double y_fixed = 0.0;
 
-  for (double x = -width / 2; x <= width / 2; x += step) {
+  for (double x = min_x; x <= max_x; x += step) {
     if (s21_smartcalc(expression, x, &y_fixed, &number_of_vars) == 0) {
-      x_fixed = x + width / 2;
-      y_fixed = height / 2 - y_fixed;
-      if (x == -100) {
-        cairo_move_to(cr, x_fixed, y_fixed);
+      x_fixed = (x - min_x) * (width / (max_x - min_x));
+      if (y_fixed > max_y * 2 || y_fixed < min_y * 2) {
+        cairo_stroke(cr);  // Обрывание текущей линии
+        cairo_move_to(cr, x_fixed, y_fixed);  // Создание новой линии
       } else {
+        y_fixed = height - (y_fixed - min_y) * (height / (max_y - min_y));
         cairo_line_to(cr, x_fixed, y_fixed);
       }
     }
@@ -473,9 +499,14 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
 void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   GtkWidget *entry1 = GTK_WIDGET(data);
   GtkWidget *entry2 = g_object_get_data(G_OBJECT(widget), "entry2");
+  GtkWidget *entry3 = g_object_get_data(G_OBJECT(widget), "entry3");  // Диапазон x
+  GtkWidget *entry4 = g_object_get_data(G_OBJECT(widget), "entry4");  // Диапазон y
 
   const gchar *expression = gtk_entry_get_text(GTK_ENTRY(entry1));
   const gchar *variable = gtk_entry_get_text(GTK_ENTRY(entry2));
+  const gchar *range_x = gtk_entry_get_text(GTK_ENTRY(entry3));  // Диапазон x
+  const gchar *range_y = gtk_entry_get_text(GTK_ENTRY(entry4));  // Диапазон y
+
   char *buffer = (char *)malloc(256 * sizeof(char));
   char *buffer_expression = (char *)malloc(256 * sizeof(char));
   strncpy(buffer, variable, 256);
@@ -484,35 +515,40 @@ void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   REPLACE_CHAR(buffer_expression, '.', ',');
   double number = 0.f;
   number = atof(buffer);
+  number = (number == 0.0 && g_strcmp0(variable, "") == 0) ? 0.1: number;
 
   int number_of_vars = 0;
   double res = 0.f;
   int ret = s21_smartcalc(buffer_expression, number, &res, &number_of_vars);
 
-  if (g_strcmp0(variable, "") == 0 && ret != -3 && number_of_vars != 0) {
+  if (ret == -3) {
+    gtk_label_set_text(GTK_LABEL(expression_label), "ОШИБКА В ВЫРАЖЕНИИ");
+  } else if (g_strcmp0(variable, "") == 0 && number_of_vars != 0 && ret != -3) {
     GtkWidget *new_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(new_window), "График");
     gtk_window_set_default_size(GTK_WINDOW(new_window), 1200, 900);
 
     GtkWidget *drawing_area = gtk_drawing_area_new();
     gtk_container_add(GTK_CONTAINER(new_window), drawing_area);
+
+    g_object_set_data(G_OBJECT(drawing_area), "range_x", (gpointer)range_x);
+    g_object_set_data(G_OBJECT(drawing_area), "range_y", (gpointer)range_y);
+
     g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_callback),
                      g_strdup(buffer_expression));
     gtk_widget_show_all(new_window);
-    free(buffer);
-    free(buffer_expression);
-  } else if ((g_strcmp0(variable, "") != 0 || number_of_vars == 0) &&
-             ret != -3) {
+  } else if (number_of_vars == 0 || (g_strcmp0(variable, "") != 0 && number_of_vars != 0 && ret != -3)) {
     int num_vars = 0;
     if (s21_smartcalc(buffer_expression, number, &number, &num_vars) == 0) {
-      snprintf(buffer, 256, "%0.3lf\n", number);
+      snprintf(buffer, 256, "%0.7lf\n", number);
       gtk_label_set_text(GTK_LABEL(expression_label), buffer);
     } else {
-      gtk_label_set_text(GTK_LABEL(expression_label), "ERROR");
+      gtk_label_set_text(GTK_LABEL(expression_label), "ОШИБКА");
     }
-  } else if (ret == -3) {
-    gtk_label_set_text(GTK_LABEL(expression_label), "ERROR");
   }
+
+  free(buffer);
+  free(buffer_expression);
 }
 
 void button1_clicked(GtkWidget *widget, gpointer data) {
@@ -526,9 +562,13 @@ void button1_clicked(GtkWidget *widget, gpointer data) {
 
   GtkWidget *entry1 = gtk_entry_new();
   GtkWidget *entry2 = gtk_entry_new();
+  GtkWidget *entry3 = gtk_entry_new();
+  GtkWidget *entry4 = gtk_entry_new();
 
   GtkWidget *label1 = gtk_label_new("Выражение:");
   GtkWidget *label2 = gtk_label_new("Значение переменной (опционально):");
+  GtkWidget *label3 = gtk_label_new("Диапазон x (default: -1:1):");
+  GtkWidget *label4 = gtk_label_new("Диапазон y (default: -1:1):");
 
   GtkWidget *calculate_button = gtk_button_new_with_label("Рассчитать");
 
@@ -536,12 +576,18 @@ void button1_clicked(GtkWidget *widget, gpointer data) {
   gtk_box_pack_start(GTK_BOX(box), entry1, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(box), label2, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(box), entry2, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), label3, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), entry3, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), label4, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(box), entry4, FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(box), calculate_button, FALSE, FALSE, 0);
 
   expression_label = gtk_label_new(NULL);
   gtk_box_pack_start(GTK_BOX(box), expression_label, FALSE, FALSE, 0);
 
   g_object_set_data(G_OBJECT(calculate_button), "entry2", entry2);
+  g_object_set_data(G_OBJECT(calculate_button), "entry3", entry3);
+  g_object_set_data(G_OBJECT(calculate_button), "entry4", entry4);
 
   g_signal_connect(G_OBJECT(calculate_button), "clicked",
                    G_CALLBACK(calculate_button_clicked), entry1);

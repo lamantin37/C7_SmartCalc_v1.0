@@ -10,6 +10,12 @@ const int LONG_OPERANDS_PRIORITY[] = {5, 5, 5, 5, 5, 5, 5, 5, 5,
 const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
                             9, 10, 11, 12, 13, 14, 15, 16};
 
+// int main() {
+//   double res = 0.f;
+//   int num = 0;
+//   printf("%d\n", s21_smartcalc("ln(x))", 10, &res, &num));
+// }
+
 int s21_smartcalc(const char *expression, double value, double *res,
                   int *number_of_vars) {
   Stack stack1;

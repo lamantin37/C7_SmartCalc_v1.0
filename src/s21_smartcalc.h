@@ -32,9 +32,9 @@ extern const double alt_names[];
 
 #define countLOWop(operator, value1, value2)     \
   ({                                             \
-    typeof(value1) _v1 = (value1);               \
-    typeof(value2) _v2 = (value2);               \
-    typeof(_v1) _result;                         \
+    double _v1 = value1;                         \
+    double _v2 = value2;                         \
+    double _result = 0.f;                        \
     if (!strncmp((operator), "+", 1)) {          \
       _result = _v2 + _v1;                       \
     } else if (!strncmp((operator), "-", 1)) {   \
