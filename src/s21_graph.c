@@ -1,6 +1,6 @@
 // gcc graph.c -o graph `pkg-config --cflags --libs gtk+-3.0`
-// gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph -lm `pkg-config --cflags --libs gtk+-3.0`
-
+// gcc graph.c s21_smartcalc.c s21_stack.c s21_smartcalc.h s21_stack.h -o graph
+// -lm `pkg-config --cflags --libs gtk+-3.0`
 #include <gtk/gtk.h>
 
 #include "s21_smartcalc.h"
@@ -457,7 +457,7 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
   cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
   cairo_paint(cr);
 
-  cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+  cairo_set_source_rgb(cr, 0.0, 0.0, 1.0);
   cairo_set_line_width(cr, 0.6);
 
   int width = gtk_widget_get_allocated_width(widget);
@@ -482,12 +482,12 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
   for (double x = min_x; x <= max_x; x += step) {
     if (s21_smartcalc(expression, x, &y_fixed, &number_of_vars) == 0) {
       x_fixed = (x - min_x) * (width / (max_x - min_x));
-      if (y_fixed > max_y * 2 || y_fixed < min_y * 2) {
-        cairo_stroke(cr);  // Обрывание текущей линии
-        cairo_move_to(cr, x_fixed, y_fixed);  // Создание новой линии
+      y_fixed = y_fixed > max_y ? max_y + 5: y_fixed < min_y ? min_y - 5: y_fixed;
+      if (y_fixed == max_y + 5 || y_fixed == min_y - 5) {
+        cairo_stroke(cr);
       } else {
         y_fixed = height - (y_fixed - min_y) * (height / (max_y - min_y));
-        cairo_line_to(cr, x_fixed, y_fixed);
+        cairo_line_to(cr, x_fixed, y_fixed); 
       }
     }
   }
@@ -499,8 +499,10 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
 void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   GtkWidget *entry1 = GTK_WIDGET(data);
   GtkWidget *entry2 = g_object_get_data(G_OBJECT(widget), "entry2");
-  GtkWidget *entry3 = g_object_get_data(G_OBJECT(widget), "entry3");  // Диапазон x
-  GtkWidget *entry4 = g_object_get_data(G_OBJECT(widget), "entry4");  // Диапазон y
+  GtkWidget *entry3 =
+      g_object_get_data(G_OBJECT(widget), "entry3");  // Диапазон x
+  GtkWidget *entry4 =
+      g_object_get_data(G_OBJECT(widget), "entry4");  // Диапазон y
 
   const gchar *expression = gtk_entry_get_text(GTK_ENTRY(entry1));
   const gchar *variable = gtk_entry_get_text(GTK_ENTRY(entry2));
@@ -515,7 +517,7 @@ void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   REPLACE_CHAR(buffer_expression, '.', ',');
   double number = 0.f;
   number = atof(buffer);
-  number = (number == 0.0 && g_strcmp0(variable, "") == 0) ? 0.1: number;
+  number = (number == 0.0 && g_strcmp0(variable, "") == 0) ? 0.1 : number;
 
   int number_of_vars = 0;
   double res = 0.f;
@@ -537,7 +539,8 @@ void calculate_button_clicked(GtkWidget *widget, gpointer data) {
     g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_callback),
                      g_strdup(buffer_expression));
     gtk_widget_show_all(new_window);
-  } else if (number_of_vars == 0 || (g_strcmp0(variable, "") != 0 && number_of_vars != 0 && ret != -3)) {
+  } else if (number_of_vars == 0 || (g_strcmp0(variable, "") != 0 &&
+                                     number_of_vars != 0 && ret != -3)) {
     int num_vars = 0;
     if (s21_smartcalc(buffer_expression, number, &number, &num_vars) == 0) {
       snprintf(buffer, 256, "%0.7lf\n", number);

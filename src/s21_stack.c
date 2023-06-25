@@ -25,13 +25,3 @@ double pop(Stack *stack) {
   stack->top--;
   return value;
 }
-
-void printStack(Stack *stack) {
-  if (isEmpty(stack)) {
-    return;
-  }
-
-  for (int i = stack->top; i >= 0; i--) {
-    printf("%lf\n", stack->data[i]);
-  }
-}

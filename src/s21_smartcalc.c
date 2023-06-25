@@ -93,7 +93,7 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
       sign = 1;
     } else if (isdigit(*p)) {
       sign = 0;
-      char *endptr;
+      char *endptr = NULL;
       double num = CONVERT_STR_TO_NUM(p, &endptr);
       num *= minus == -1 ? minus : 1;
       minus = minus == -1 ? 1 : minus;

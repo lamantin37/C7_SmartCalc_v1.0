@@ -2,13 +2,14 @@ CC = gcc
 CFLAGS = -std=c11 `pkg-config --cflags gtk+-3.0`
 SOURCE = $(wildcard s21_smartcalc.c s21_stack.c)
 HEADERS = $(wildcard s21_smartcalc.h s21_stack.h)
-TESTS = test_21_smartcalc.c
+TESTS = $(wildcard test_s21_smartcalc.c)
 OBJECTS = $(patsubst %.c, %.o, $(SOURCE))
 _UNAME_ := $(shell uname -s)
 
 ifeq ($(_UNAME_), Linux)
 	OPEN_CMD = xdg-open
 	ADD_LIB := `pkg-config --libs gtk+-3.0` -lm -lcheck -lsubunit
+	ADD_LIB_P = -lm -lcheck -lsubunit
 	BREW = .
 	BROWSER_APP = firefox
 endif
@@ -16,6 +17,7 @@ endif
 ifeq ($(_UNAME_), Darwin) # MacOS
 	OPEN_CMD = open
 	ADD_LIB = `pkg-config --libs gtk+-3.0` -lm -lcheck
+	ADD_LIB_P = -lm -lcheck
 	BREW = ${HOME}/homebrew
 	BROWSER_APP = /Applications/Google\ Chrome.app
 endif
@@ -24,7 +26,7 @@ PATH := $(PATH):$(BREW)/bin
 GCOV = --coverage
 PROJECT_NAME := s21_smartcalc
 
-all: clean style $(PROJECT_NAME).a test gcov_report
+all: clean style $(PROJECT_NAME).a test gcov_report clean install
 
 $(PROJECT_NAME).a: $(SOURCE) $(HEADERS)
 	$(info                                         )
@@ -38,7 +40,7 @@ $(PROJECT_NAME).a: $(SOURCE) $(HEADERS)
 test: $(TESTS) $(PROJECT_NAME).a
 	$(info                                         )
 	$(info ----------------------------------------)
-	$(info Build tests                           )
+	$(info Build tests                             )
 	$(info ----------------------------------------)
 	$(CC) $^ $(ADD_LIB) -o $@
 	./$@
@@ -54,6 +56,9 @@ gcov_report: clean lcov $(TESTS)
 	./$@
 	lcov -t $@ -o $@.info -c -d . --no-external
 	genhtml -o report/ $@.info
+	rm -rf *.gcda
+	rm -rf *.gcno
+	rm -rf *.info
 
 ifeq ($(_UNAME_), Darwin) # MacOS
 	open $(BROWSER_APP) ./report/index.html
@@ -80,43 +85,48 @@ clean:
 	-rm -rf *.info && rm -rf *.gcov
 	-rm -rf ./test && rm -rf ./gcov_report
 	-rm -rf ./report/
+	-rm -rf ./build
+	-rm -rf Archive_SmartCalc_v1.0
+	-rm -rf Archive_SmartCalc_v1.0.tgz
 
 install:
 	$(info                                         )
 	$(info ----------------------------------------)
 	$(info Install the project                     )
 	$(info ----------------------------------------)
-	mkdir -p /path/to/installation
-	cp $(PROJECT_NAME).a /path/to/installation/$(PROJECT_NAME).a
-	cp $(HEADERS) /path/to/installation/
-	# Add any additional installation steps
+	make clean
+	mkdir build
+	$(CC) s21_graph.c $(SOURCE) $(HEADERS) -o ./build/$(PROJECT_NAME) -lm `pkg-config --cflags --libs gtk+-3.0`
+	./build/s21_smartcalc
 
 uninstall:
 	$(info                                         )
 	$(info ----------------------------------------)
 	$(info Uninstall the project                   )
 	$(info ----------------------------------------)
-	rm -rf /path/to/installation/$(PROJECT_NAME).a
-	rm -rf /path/to/installation/$(HEADERS)
-	# Add any additional uninstallation steps
+	-rm -rf ./build
 
 dvi:
 	$(info                                         )
 	$(info ----------------------------------------)
-	$(info Generate DVI file                        )
+	$(info Generate DVI file                       )
 	$(info ----------------------------------------)
-	latex my_document.tex
-	# Add any additional DVI generation steps
+	open dvi.txt
 
 dist:
 	$(info                                         )
 	$(info ----------------------------------------)
 	$(info Create a distribution package           )
 	$(info ----------------------------------------)
-	mkdir -p dist/$(PROJECT_NAME)
-	cp $(PROJECT_NAME).a dist/$(PROJECT_NAME)/$(PROJECT_NAME).a
-	cp $(HEADERS) dist/$(PROJECT_NAME)/
-	cp README.md dist/$(PROJECT_NAME)/
-	# Add any additional distribution packaging steps
+	make clean
+	mkdir build
+	$(CC) s21_graph.c $(SOURCE) $(HEADERS) -o ./build/$(PROJECT_NAME) -lm `pkg-config --cflags --libs gtk+-3.0`
+	rm -rf Archive_SmartCalc_v1.0/
+	mkdir Archive_SmartCalc_v1.0/
+	mkdir Archive_SmartCalc_v1.0/src
+	mv ./build/s21_smartcalc Archive_SmartCalc_v1.0/src
+	tar cvzf Archive_SmartCalc_v1.0.tgz Archive_SmartCalc_v1.0/
+	rm -rf Archive_SmartCalc_v1.0
+	rm -rf ./build
 
 .PHONY: all install uninstall clean dvi dist
