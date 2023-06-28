@@ -58,29 +58,35 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
   gdouble interest_earned = deposit_amount;
   gdouble tax_amount = 0.0;
   gdouble total_amount = deposit_amount;
+  gdouble income_amount = 0.0;
 
   // Расчет начисленных процентов
   if (g_strcmp0(interest_type, "Добавлять к вкладу") == 0) {
     if (g_strcmp0(periodicity, "Ежедневно") == 0) {
       for (int i = 0; i != placement_term; i++) {
-        interest_earned *= 1 + ((interest_rate - tax_rate) / 36500);
+        income_amount = (interest_rate / 36500) * interest_earned;
+        tax_amount += income_amount * (tax_amount / 36500);
+        interest_earned += income_amount - tax_amount;
       }
     } else if (g_strcmp0(periodicity, "Ежемесячно") == 0) {
       for (int i = 0; i != placement_term / 30; i++) {
-        interest_earned *= 1 + ((interest_rate - tax_rate) / 1200);
+        income_amount = (interest_rate / 1200) * interest_earned;
+        tax_amount += income_amount * (tax_amount / 1200);
+        interest_earned += income_amount;
       }
     } else if (g_strcmp0(periodicity, "Ежеквартально") == 0) {
       for (int i = 0; i != placement_term / 120; i++) {
-        interest_earned *= 1 + ((interest_rate - tax_rate) / 400);
+        income_amount = (interest_rate / 400) * interest_earned;
+        tax_amount += income_amount * (tax_amount / 400);
+        interest_earned += income_amount - tax_amount;
       }
     }
+    interest_earned -= tax_amount;
   } else if (g_strcmp0(interest_type, "Выплачивать") == 0) {
     interest_earned =
         (((interest_rate - tax_rate) / 36500) * total_amount) * placement_term +
         total_amount;
   }
-
-  tax_amount = interest_earned * (tax_rate / 100);
 
   GtkWidget *result_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(result_window), "Результаты расчета");
@@ -95,7 +101,6 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
       "срока: %.2f",
       interest_earned - deposit_amount, tax_amount, interest_earned);
   gtk_label_set_text(GTK_LABEL(result_label), result_text);
-  g_free(result_text);
 
   gtk_box_pack_start(GTK_BOX(result_box), result_label, FALSE, FALSE, 15);
 
@@ -130,8 +135,6 @@ void on_interest_type_changed(GtkWidget *widget, gpointer data) {
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(periodicity_combo),
                                    "Ежеквартально");
   }
-
-  g_free((gpointer)interest_type);
 }
 
 void button3_clicked(GtkWidget *widget, gpointer data) {
@@ -361,9 +364,6 @@ void calculate_credit(GtkWidget *widget, gpointer data) {
                    g_memdup2(data_pay, 2 * sizeof(double)));
   gtk_box_pack_start(GTK_BOX(result_box), drawing_area, FALSE, FALSE, 0);
 
-  g_free(total_text);
-  g_free(monthly_text);
-
   gtk_widget_show_all(result_window);
 }
 
@@ -429,7 +429,6 @@ void button2_clicked(GtkWidget *widget, gpointer data) {
 gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
   const gchar *range_x = g_object_get_data(G_OBJECT(widget), "range_x");
   const gchar *range_y = g_object_get_data(G_OBJECT(widget), "range_y");
-
   // Обработка параметра range_x
   double min_x = -1.0;
   double max_x = 1.0;
@@ -439,7 +438,6 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
       min_x = atof(tokens[0]);
       max_x = atof(tokens[1]);
     }
-    g_strfreev(tokens);
   }
 
   // Обработка параметра range_y
@@ -451,7 +449,6 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
       min_y = atof(tokens[0]);
       max_y = atof(tokens[1]);
     }
-    g_strfreev(tokens);
   }
 
   cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
@@ -482,12 +479,15 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
   for (double x = min_x; x <= max_x; x += step) {
     if (s21_smartcalc(expression, x, &y_fixed, &number_of_vars) == 0) {
       x_fixed = (x - min_x) * (width / (max_x - min_x));
-      y_fixed = y_fixed > max_y ? max_y + 5: y_fixed < min_y ? min_y - 5: y_fixed;
-      if (y_fixed == max_y + 5 || y_fixed == min_y - 5) {
+      y_fixed = y_fixed > max_y   ? max_y + 5
+                : y_fixed < min_y ? min_y - 5
+                                  : y_fixed;
+      if (y_fixed == max_y + 5) {
+        cairo_line_to(cr, x_fixed, 0);
         cairo_stroke(cr);
       } else {
         y_fixed = height - (y_fixed - min_y) * (height / (max_y - min_y));
-        cairo_line_to(cr, x_fixed, y_fixed); 
+        cairo_line_to(cr, x_fixed, y_fixed);
       }
     }
   }
@@ -522,7 +522,6 @@ void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   int number_of_vars = 0;
   double res = 0.f;
   int ret = s21_smartcalc(buffer_expression, number, &res, &number_of_vars);
-
   if (ret == -3) {
     gtk_label_set_text(GTK_LABEL(expression_label), "ОШИБКА В ВЫРАЖЕНИИ");
   } else if (g_strcmp0(variable, "") == 0 && number_of_vars != 0 && ret != -3) {
@@ -543,15 +542,13 @@ void calculate_button_clicked(GtkWidget *widget, gpointer data) {
                                      number_of_vars != 0 && ret != -3)) {
     int num_vars = 0;
     if (s21_smartcalc(buffer_expression, number, &number, &num_vars) == 0) {
-      snprintf(buffer, 256, "%0.7lf\n", number);
-      gtk_label_set_text(GTK_LABEL(expression_label), buffer);
+      char num_buf[256] = "\0";
+      snprintf(num_buf, 256, "%0.7lf\n", number);
+      gtk_label_set_text(GTK_LABEL(expression_label), num_buf);
     } else {
       gtk_label_set_text(GTK_LABEL(expression_label), "ОШИБКА");
     }
   }
-
-  free(buffer);
-  free(buffer_expression);
 }
 
 void button1_clicked(GtkWidget *widget, gpointer data) {

@@ -26,7 +26,7 @@ PATH := $(PATH):$(BREW)/bin
 GCOV = --coverage
 PROJECT_NAME := s21_smartcalc
 
-all: clean style $(PROJECT_NAME).a test gcov_report clean install
+all: clean style $(PROJECT_NAME).a test gcov_report
 
 $(PROJECT_NAME).a: $(SOURCE) $(HEADERS)
 	$(info                                         )
@@ -106,12 +106,14 @@ uninstall:
 	$(info ----------------------------------------)
 	-rm -rf ./build
 
+rebuild: uninstall clean install
+
 dvi:
 	$(info                                         )
 	$(info ----------------------------------------)
 	$(info Generate DVI file                       )
 	$(info ----------------------------------------)
-	open dvi.txt
+	cat dvi.txt
 
 dist:
 	$(info                                         )

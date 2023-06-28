@@ -13,7 +13,8 @@ const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
 // int main() {
 //   double res = 0.f;
 //   int num = 0;
-//   printf("%d\n", s21_smartcalc("ln(x))", 10, &res, &num));
+//   printf("%d\n", s21_smartcalc("sin(2e4)", 10, &res, &num));
+//   printf("%lf\n", res);
 // }
 
 int s21_smartcalc(const char *expression, double value, double *res,
@@ -53,6 +54,7 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
         sign = 0;
         continue;
       }
+      sign = 1;
       p += (strlen(LONG_OPERANDS[ret]) - 1);
       push(&tmp, alt_names[ret], 0);
       if (tmp.data[tmp.top] == 16.0) {
@@ -70,6 +72,7 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
           }
         }
         pop(&tmp);
+        sign = 0;
       } else if ((LONG_OPERANDS_PRIORITY[(int)tmp.data[tmp.top]] <=
                   LONG_OPERANDS_PRIORITY[(int)tmp.data[tmp.top - 1]]) &&
                  tmp.data[tmp.top] != 15.0) {
@@ -90,7 +93,6 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
         }
         push(&tmp, alt_names[ret], 0);
       }
-      sign = 1;
     } else if (isdigit(*p)) {
       sign = 0;
       char *endptr = NULL;
