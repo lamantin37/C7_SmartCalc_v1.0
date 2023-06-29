@@ -47,41 +47,31 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
       gtk_entry_get_text(GTK_ENTRY(partial_withdrawals_entry));
 
   // Преобразование строк в числа
-  gdouble deposit_amount = g_strtod(deposit_amount_str, NULL);
-  gint placement_term = g_ascii_strtoll(placement_term_str, NULL, 10);
-  gdouble interest_rate = g_strtod(interest_rate_str, NULL);
-  gdouble tax_rate = g_strtod(tax_rate_str, NULL);
-  gdouble deposit_additions = g_strtod(deposit_additions_str, NULL);
-  gdouble partial_withdrawals = g_strtod(partial_withdrawals_str, NULL);
+  double deposit_amount = g_strtod(deposit_amount_str, NULL);
+  double placement_term = g_strtod(placement_term_str, NULL);
+  double interest_rate = g_strtod(interest_rate_str, NULL);
+  double tax_rate = g_strtod(tax_rate_str, NULL);
+  double deposit_additions = g_strtod(deposit_additions_str, NULL);
+  double partial_withdrawals = g_strtod(partial_withdrawals_str, NULL);
 
   // Выполнение расчетов
-  gdouble interest_earned = deposit_amount;
-  gdouble tax_amount = 0.0;
-  gdouble total_amount = deposit_amount;
-  gdouble income_amount = 0.0;
+  double interest_earned = deposit_amount;
+  double tax_amount = deposit_amount;
+  double total_amount = deposit_amount;
+  double income_amount = 0.0;
 
   // Расчет начисленных процентов
   if (g_strcmp0(interest_type, "Добавлять к вкладу") == 0) {
     if (g_strcmp0(periodicity, "Ежедневно") == 0) {
-      for (int i = 0; i != placement_term; i++) {
-        income_amount = (interest_rate / 36500) * interest_earned;
-        tax_amount += income_amount * (tax_amount / 36500);
-        interest_earned += income_amount - tax_amount;
-      }
+      interest_earned *= pow(1 + (interest_rate / 36500), placement_term*30);
+      tax_amount *= pow(1 + (interest_rate / 36500) * (1 - (tax_rate / 100)), placement_term*30);
     } else if (g_strcmp0(periodicity, "Ежемесячно") == 0) {
-      for (int i = 0; i != placement_term / 30; i++) {
-        income_amount = (interest_rate / 1200) * interest_earned;
-        tax_amount += income_amount * (tax_amount / 1200);
-        interest_earned += income_amount;
-      }
+      interest_earned *= pow(1 + (interest_rate / 1200), placement_term);
+      tax_amount *= pow(1 + (interest_rate / 1200) * (1 - (tax_rate / 100)), placement_term);
     } else if (g_strcmp0(periodicity, "Ежеквартально") == 0) {
-      for (int i = 0; i != placement_term / 120; i++) {
-        income_amount = (interest_rate / 400) * interest_earned;
-        tax_amount += income_amount * (tax_amount / 400);
-        interest_earned += income_amount - tax_amount;
-      }
+      interest_earned *= pow(1 + (interest_rate / 400), (int) placement_term / 4);
+      tax_amount *= pow(1 + (interest_rate / 400) * (1 - (tax_rate / 100)), (int) placement_term / 4);
     }
-    interest_earned -= tax_amount;
   } else if (g_strcmp0(interest_type, "Выплачивать") == 0) {
     interest_earned =
         (((interest_rate - tax_rate) / 36500) * total_amount) * placement_term +
@@ -99,7 +89,7 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
   gchar *result_text = g_strdup_printf(
       "Начисленные проценты: %.2f\nСумма налога: %.2f\nСумма на вкладе к концу "
       "срока: %.2f",
-      interest_earned - deposit_amount, tax_amount, interest_earned);
+      tax_amount - deposit_amount, interest_earned - tax_amount, tax_amount);
   gtk_label_set_text(GTK_LABEL(result_label), result_text);
 
   gtk_box_pack_start(GTK_BOX(result_box), result_label, FALSE, FALSE, 15);
@@ -500,14 +490,14 @@ void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   GtkWidget *entry1 = GTK_WIDGET(data);
   GtkWidget *entry2 = g_object_get_data(G_OBJECT(widget), "entry2");
   GtkWidget *entry3 =
-      g_object_get_data(G_OBJECT(widget), "entry3");  // Диапазон x
+      g_object_get_data(G_OBJECT(widget), "entry3"); // Диапазон x
   GtkWidget *entry4 =
-      g_object_get_data(G_OBJECT(widget), "entry4");  // Диапазон y
+      g_object_get_data(G_OBJECT(widget), "entry4"); // Диапазон y
 
   const gchar *expression = gtk_entry_get_text(GTK_ENTRY(entry1));
   const gchar *variable = gtk_entry_get_text(GTK_ENTRY(entry2));
-  const gchar *range_x = gtk_entry_get_text(GTK_ENTRY(entry3));  // Диапазон x
-  const gchar *range_y = gtk_entry_get_text(GTK_ENTRY(entry4));  // Диапазон y
+  const gchar *range_x = gtk_entry_get_text(GTK_ENTRY(entry3)); // Диапазон x
+  const gchar *range_y = gtk_entry_get_text(GTK_ENTRY(entry4)); // Диапазон y
 
   char *buffer = (char *)malloc(256 * sizeof(char));
   char *buffer_expression = (char *)malloc(256 * sizeof(char));
