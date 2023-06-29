@@ -44,6 +44,7 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
   int minus = 1;
   sign = *expression == '-' ? 1 : 0;
   int ret = -1;
+  int return_value = 0;
   for (char *p = (char *)expression; *p != '\0'; p++) {
     if ((ret = CHECK_L_OP(p)) != -1) {
       if (sign == 1 && ret == 11) {
@@ -65,13 +66,19 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
           push(stack, pop(&tmp), 0);
           double res = 0.f;
           if (countValue(stack, &res) == 1) {
-            return -3;
+            return_value = -3;
+            break;
           }
           if (isnan(res)) {
-            return -1;
+            return_value = -1;
+            break;
           } else if (isinf(res)) {
-            return -2;
+            return_value = -2;
+            break;
           }
+        }
+        if (return_value != 0) {
+          break;
         }
         pop(&tmp);
         sign = 0;
@@ -85,13 +92,19 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
           push(stack, pop(&tmp), 0);
           double res = 0.f;
           if (countValue(stack, &res) == 1) {
-            return -3;
+            return_value = -3;
+            break;
           }
           if (isnan(res)) {
-            return -1;
+            return_value = -1;
+            break;
           } else if (isinf(res)) {
-            return -2;
+            return_value = -2;
+            break;
           }
+        }
+        if (return_value != 0) {
+          break;
         }
         if (ret != -1) {
           push(&tmp, alt_names[ret], 0);
@@ -119,15 +132,18 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
     push(stack, num, 0);
     double res = 0.f;
     if (countValue(stack, &res) == 1) {
-      return -3;
+      return_value = -3;
+      break;
     }
     if (isnan(res)) {
-      return -1;
+      return_value = -1;
+      break;
     } else if (isinf(res)) {
-      return -2;
+      return_value = -2;
+      break;
     }
   }
-  return 0;
+  return return_value;
 }
 
 int countValue(Stack *stack, double *res) {
