@@ -28,6 +28,63 @@ GtkWidget *periodicity_entry;
 GtkWidget *deposit_additions_entry;
 GtkWidget *partial_withdrawals_entry;
 
+gboolean draw_chart(GtkWidget *widget, cairo_t *cr, double *data_pay) {
+  GtkAllocation allocation;
+
+  gtk_widget_get_allocation(widget, &allocation);
+
+  guint width = allocation.width;
+  guint height = allocation.height;
+
+  cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+  cairo_rectangle(cr, 0, 0, width, height);
+  cairo_fill(cr);
+
+  double padding = 10.0;
+  double corner_radius = 5.0;
+
+  cairo_set_source_rgb(cr, 0.1, 0.2, 0.7);
+  double initial_width =
+      (data_pay[0] - data_pay[1]) / data_pay[0] * (width - 2 * padding);
+  cairo_move_to(cr, padding + corner_radius, padding);
+  cairo_line_to(cr, padding + initial_width - corner_radius, padding);
+  cairo_arc(cr, padding + initial_width - corner_radius,
+            padding + corner_radius, corner_radius, 1.5 * G_PI, 2 * G_PI);
+  cairo_line_to(cr, padding + initial_width, height - padding - corner_radius);
+  cairo_arc(cr, padding + initial_width - corner_radius,
+            height - padding - corner_radius, corner_radius, 0, 0.5 * G_PI);
+  cairo_line_to(cr, padding + corner_radius, height - padding);
+  cairo_arc(cr, padding + corner_radius, height - padding - corner_radius,
+            corner_radius, 0.5 * G_PI, G_PI);
+  cairo_line_to(cr, padding, padding + corner_radius);
+  cairo_arc(cr, padding + corner_radius, padding + corner_radius, corner_radius,
+            G_PI, 1.5 * G_PI);
+  cairo_close_path(cr);
+  cairo_fill(cr);
+
+  cairo_set_source_rgb(cr, 0.7, 0.2, 0.1);
+  double overpayment_width = data_pay[1] / data_pay[0] * (width - 2 * padding);
+  double overpayment_x = padding + initial_width;
+  cairo_move_to(cr, overpayment_x + corner_radius, padding);
+  cairo_line_to(cr, overpayment_x + overpayment_width - corner_radius, padding);
+  cairo_arc(cr, overpayment_x + overpayment_width - corner_radius,
+            padding + corner_radius, corner_radius, 1.5 * G_PI, 2 * G_PI);
+  cairo_line_to(cr, overpayment_x + overpayment_width,
+                height - padding - corner_radius);
+  cairo_arc(cr, overpayment_x + overpayment_width - corner_radius,
+            height - padding - corner_radius, corner_radius, 0, 0.5 * G_PI);
+  cairo_line_to(cr, overpayment_x + corner_radius, height - padding);
+  cairo_arc(cr, overpayment_x + corner_radius, height - padding - corner_radius,
+            corner_radius, 0.5 * G_PI, G_PI);
+  cairo_line_to(cr, overpayment_x, padding + corner_radius);
+  cairo_arc(cr, overpayment_x + corner_radius, padding + corner_radius,
+            corner_radius, G_PI, 1.5 * G_PI);
+  cairo_close_path(cr);
+  cairo_fill(cr);
+
+  return FALSE;
+}
+
 void calculate_deposit(GtkWidget *widget, gpointer data) {
   // Получение значений из полей ввода
   const gchar *deposit_amount_str =
@@ -63,19 +120,22 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
   // Расчет начисленных процентов
   if (g_strcmp0(interest_type, "Добавлять к вкладу") == 0) {
     if (g_strcmp0(periodicity, "Ежедневно") == 0) {
-      interest_earned *= pow(1 + (interest_rate / 36500), placement_term*30);
-      tax_amount *= pow(1 + (interest_rate / 36500) * (1 - (tax_rate / 100)), placement_term*30);
+      interest_earned *= pow(1 + (interest_rate / 36500), placement_term * 30);
+      tax_amount *= pow(1 + (interest_rate / 36500) * (1 - (tax_rate / 100)),
+                        placement_term * 30);
     } else if (g_strcmp0(periodicity, "Ежемесячно") == 0) {
       interest_earned *= pow(1 + (interest_rate / 1200), placement_term);
-      tax_amount *= pow(1 + (interest_rate / 1200) * (1 - (tax_rate / 100)), placement_term);
+      tax_amount *= pow(1 + (interest_rate / 1200) * (1 - (tax_rate / 100)),
+                        placement_term);
     } else if (g_strcmp0(periodicity, "Ежеквартально") == 0) {
-      interest_earned *= pow(1 + (interest_rate / 400), (int) placement_term / 4);
-      tax_amount *= pow(1 + (interest_rate / 400) * (1 - (tax_rate / 100)), (int) placement_term / 4);
+      interest_earned *= pow(1 + (interest_rate / 400), placement_term / 4);
+      tax_amount *= pow(1 + (interest_rate / 400) * (1 - (tax_rate / 100)),
+                        placement_term / 4);
     }
   } else if (g_strcmp0(interest_type, "Выплачивать") == 0) {
-    interest_earned =
-        (((interest_rate - tax_rate) / 36500) * total_amount) * placement_term +
-        total_amount;
+    interest_earned *= pow(1 + (interest_rate / 36500), placement_term * 30);
+    tax_amount *= pow(1 + (interest_rate / 36500) * (1 - (tax_rate / 100)),
+                      placement_term * 30);
   }
 
   GtkWidget *result_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -89,10 +149,21 @@ void calculate_deposit(GtkWidget *widget, gpointer data) {
   gchar *result_text = g_strdup_printf(
       "Начисленные проценты: %.2f\nСумма налога: %.2f\nСумма на вкладе к концу "
       "срока: %.2f",
-      tax_amount - deposit_amount, interest_earned - tax_amount, tax_amount);
+      tax_amount - deposit_amount, interest_earned - tax_amount,
+      tax_amount + deposit_additions - partial_withdrawals);
   gtk_label_set_text(GTK_LABEL(result_label), result_text);
 
   gtk_box_pack_start(GTK_BOX(result_box), result_label, FALSE, FALSE, 15);
+
+  GtkWidget *drawing_area = gtk_drawing_area_new();
+  gtk_widget_set_size_request(drawing_area, 400, 200);
+
+  double data_pay[2];
+  data_pay[0] = tax_amount;
+  data_pay[1] = tax_amount - deposit_amount;
+  g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(draw_chart),
+                   g_memdup2(data_pay, 2 * sizeof(double)));
+  gtk_box_pack_start(GTK_BOX(result_box), drawing_area, FALSE, FALSE, 0);
 
   gtk_widget_show_all(result_window);
   gtk_window_present(GTK_WINDOW(result_window));
@@ -223,63 +294,6 @@ void button3_clicked(GtkWidget *widget, gpointer data) {
 
   gtk_widget_show_all(deposit_window);
   gtk_window_present(GTK_WINDOW(deposit_window));
-}
-
-gboolean draw_chart(GtkWidget *widget, cairo_t *cr, double *data_pay) {
-  GtkAllocation allocation;
-
-  gtk_widget_get_allocation(widget, &allocation);
-
-  guint width = allocation.width;
-  guint height = allocation.height;
-
-  cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-  cairo_rectangle(cr, 0, 0, width, height);
-  cairo_fill(cr);
-
-  double padding = 10.0;
-  double corner_radius = 5.0;
-
-  cairo_set_source_rgb(cr, 0.1, 0.2, 0.7);
-  double initial_width =
-      (data_pay[0] - data_pay[1]) / data_pay[0] * (width - 2 * padding);
-  cairo_move_to(cr, padding + corner_radius, padding);
-  cairo_line_to(cr, padding + initial_width - corner_radius, padding);
-  cairo_arc(cr, padding + initial_width - corner_radius,
-            padding + corner_radius, corner_radius, 1.5 * G_PI, 2 * G_PI);
-  cairo_line_to(cr, padding + initial_width, height - padding - corner_radius);
-  cairo_arc(cr, padding + initial_width - corner_radius,
-            height - padding - corner_radius, corner_radius, 0, 0.5 * G_PI);
-  cairo_line_to(cr, padding + corner_radius, height - padding);
-  cairo_arc(cr, padding + corner_radius, height - padding - corner_radius,
-            corner_radius, 0.5 * G_PI, G_PI);
-  cairo_line_to(cr, padding, padding + corner_radius);
-  cairo_arc(cr, padding + corner_radius, padding + corner_radius, corner_radius,
-            G_PI, 1.5 * G_PI);
-  cairo_close_path(cr);
-  cairo_fill(cr);
-
-  cairo_set_source_rgb(cr, 0.7, 0.2, 0.1);
-  double overpayment_width = data_pay[1] / data_pay[0] * (width - 2 * padding);
-  double overpayment_x = padding + initial_width;
-  cairo_move_to(cr, overpayment_x + corner_radius, padding);
-  cairo_line_to(cr, overpayment_x + overpayment_width - corner_radius, padding);
-  cairo_arc(cr, overpayment_x + overpayment_width - corner_radius,
-            padding + corner_radius, corner_radius, 1.5 * G_PI, 2 * G_PI);
-  cairo_line_to(cr, overpayment_x + overpayment_width,
-                height - padding - corner_radius);
-  cairo_arc(cr, overpayment_x + overpayment_width - corner_radius,
-            height - padding - corner_radius, corner_radius, 0, 0.5 * G_PI);
-  cairo_line_to(cr, overpayment_x + corner_radius, height - padding);
-  cairo_arc(cr, overpayment_x + corner_radius, height - padding - corner_radius,
-            corner_radius, 0.5 * G_PI, G_PI);
-  cairo_line_to(cr, overpayment_x, padding + corner_radius);
-  cairo_arc(cr, overpayment_x + corner_radius, padding + corner_radius,
-            corner_radius, G_PI, 1.5 * G_PI);
-  cairo_close_path(cr);
-  cairo_fill(cr);
-
-  return FALSE;
 }
 
 void calculate_credit(GtkWidget *widget, gpointer data) {
@@ -423,10 +437,14 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
   double min_x = -1.0;
   double max_x = 1.0;
   if (range_x != NULL && strlen(range_x) > 0) {
-    gchar **tokens = g_strsplit(range_x, ":", 2);
-    if (tokens[0] != NULL && tokens[1] != NULL) {
-      min_x = atof(tokens[0]);
-      max_x = atof(tokens[1]);
+    gchar *range_x_copy = g_strdup(range_x);
+    gchar *token = strtok(range_x_copy, ":");
+    if (token != NULL) {
+      min_x = atof(token);
+      token = strtok(NULL, ":");
+      if (token != NULL) {
+        max_x = atof(token);
+      }
     }
   }
 
@@ -434,10 +452,14 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, const char *expression) {
   double min_y = -1.0;
   double max_y = 1.0;
   if (range_y != NULL && strlen(range_y) > 0) {
-    gchar **tokens = g_strsplit(range_y, ":", 2);
-    if (tokens[0] != NULL && tokens[1] != NULL) {
-      min_y = atof(tokens[0]);
-      max_y = atof(tokens[1]);
+    gchar *range_y_copy = g_strdup(range_y);
+    gchar *token = strtok(range_y_copy, ":");
+    if (token != NULL) {
+      min_y = atof(token);
+      token = strtok(NULL, ":");
+      if (token != NULL) {
+        max_y = atof(token);
+      }
     }
   }
 
@@ -490,14 +512,14 @@ void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   GtkWidget *entry1 = GTK_WIDGET(data);
   GtkWidget *entry2 = g_object_get_data(G_OBJECT(widget), "entry2");
   GtkWidget *entry3 =
-      g_object_get_data(G_OBJECT(widget), "entry3"); // Диапазон x
+      g_object_get_data(G_OBJECT(widget), "entry3");  // Диапазон x
   GtkWidget *entry4 =
-      g_object_get_data(G_OBJECT(widget), "entry4"); // Диапазон y
+      g_object_get_data(G_OBJECT(widget), "entry4");  // Диапазон y
 
   const gchar *expression = gtk_entry_get_text(GTK_ENTRY(entry1));
   const gchar *variable = gtk_entry_get_text(GTK_ENTRY(entry2));
-  const gchar *range_x = gtk_entry_get_text(GTK_ENTRY(entry3)); // Диапазон x
-  const gchar *range_y = gtk_entry_get_text(GTK_ENTRY(entry4)); // Диапазон y
+  const gchar *range_x = gtk_entry_get_text(GTK_ENTRY(entry3));  // Диапазон x
+  const gchar *range_y = gtk_entry_get_text(GTK_ENTRY(entry4));  // Диапазон y
 
   char *buffer = (char *)malloc(256 * sizeof(char));
   char *buffer_expression = (char *)malloc(256 * sizeof(char));
@@ -531,9 +553,10 @@ void calculate_button_clicked(GtkWidget *widget, gpointer data) {
   } else if (number_of_vars == 0 || (g_strcmp0(variable, "") != 0 &&
                                      number_of_vars != 0 && ret != -3)) {
     int num_vars = 0;
-    if (s21_smartcalc(buffer_expression, number, &number, &num_vars) == 0) {
+    double res2 = 0.f;
+    if (s21_smartcalc(buffer_expression, number, &res2, &num_vars) == 0) {
       char num_buf[256] = "\0";
-      snprintf(num_buf, 256, "%0.7lf\n", number);
+      snprintf(num_buf, 256, "%0.7lf\n", res2);
       gtk_label_set_text(GTK_LABEL(expression_label), num_buf);
     } else {
       gtk_label_set_text(GTK_LABEL(expression_label), "ОШИБКА");

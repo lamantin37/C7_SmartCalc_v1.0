@@ -10,24 +10,20 @@ const int LONG_OPERANDS_PRIORITY[] = {5, 5, 5, 5, 5, 5, 5, 5, 5,
 const double alt_names[] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
                             9, 10, 11, 12, 13, 14, 15, 16};
 
-// int main() {
-//   double res = 0.f;
-//   int num = 0;
-//   printf("%d\n", s21_smartcalc("sin(2e4)", 10, &res, &num));
-//   printf("%lf\n", res);
-// }
-
 int s21_smartcalc(const char *expression, double value, double *res,
                   int *number_of_vars) {
+  if (expression == NULL || res == NULL || number_of_vars == NULL) {
+    return -4;
+  }
+
   Stack stack1;
   init(&stack1);
+  clear(&stack1);
   int ret = fillStackDijkstra(&stack1, expression, value, number_of_vars);
   ret = ret == 0 ? (stack1.top == 0 ? ret : -3) : ret;
-
   if (ret == -1) {
     *res = NAN;
   }
-
   if (ret == -2) {
     *res = INFINITY;
   }
@@ -43,11 +39,12 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
                       int *number_of_vars) {
   Stack tmp;
   init(&tmp);
+  clear(&tmp);
   int sign = 0;
   int minus = 1;
   sign = *expression == '-' ? 1 : 0;
-  for (const char *p = expression; *p != '\0'; p++) {
-    int ret = -1;
+  int ret = -1;
+  for (char *p = (char *)expression; *p != '\0'; p++) {
     if ((ret = CHECK_L_OP(p)) != -1) {
       if (sign == 1 && ret == 11) {
         minus = -1;
@@ -55,9 +52,14 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
         continue;
       }
       sign = 1;
-      p += (strlen(LONG_OPERANDS[ret]) - 1);
-      push(&tmp, alt_names[ret], 0);
-      if (tmp.data[tmp.top] == 16.0) {
+      const int long_operand_len = strlen(LONG_OPERANDS[ret]);
+      p += (long_operand_len - 1);
+      if (ret != -1) {
+        push(&tmp, alt_names[ret], 0);
+      }
+      if (tmp.top == 0) {
+        continue;
+      } else if (tmp.data[tmp.top] == 16.0) {
         pop(&tmp);
         while (tmp.data[tmp.top] != 15.0) {
           push(stack, pop(&tmp), 0);
@@ -91,7 +93,9 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
             return -2;
           }
         }
-        push(&tmp, alt_names[ret], 0);
+        if (ret != -1) {
+          push(&tmp, alt_names[ret], 0);
+        }
       }
     } else if (isdigit(*p)) {
       sign = 0;
@@ -110,7 +114,6 @@ int fillStackDijkstra(Stack *stack, const char *expression, double value,
       push(stack, num, 1);
     }
   }
-
   while (!isEmpty(&tmp)) {
     double num = pop(&tmp);
     push(stack, num, 0);

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #define MAX_SIZE 255
 
 typedef struct {
@@ -12,4 +13,4 @@ int isEmpty(Stack *stack);
 int isFull(Stack *stack);
 void push(Stack *stack, double value, int is_num);
 double pop(Stack *stack);
-void printStack(Stack *stack);
+void clear(Stack *stack);
